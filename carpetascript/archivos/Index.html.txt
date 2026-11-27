@@ -5,7 +5,7 @@
 <script>
 /* Diagnóstico: si algo falla, aparece un aviso rojo con el detalle (se puede copiar y enviar). */
 (function () {
-  window.__PORT = '2026-11-27-diag3';
+  window.__PORT = '2026-11-27-diag4';
   var errs = [], banner = null;
   // Si el navegador bloquea localStorage dentro de Apps Script, se usa una memoria temporal (sin errores)
   try { var t = window.localStorage; t.setItem('__t', '1'); t.removeItem('__t'); }
@@ -27,10 +27,8 @@
     d.push('app iniciada: ' + (window.__APP_LISTO ? 'sí' : 'NO'));
     var mayor = 0, n = 0;
     [].slice.call(document.scripts).forEach(function (sc) { if (!sc.src && sc.type !== 'application/json') { n++; mayor = Math.max(mayor, (sc.textContent || '').length); } });
-    var appLen = 0;
-    [].slice.call(document.scripts).forEach(function (sc) { if (!sc.src && (sc.textContent || '').indexOf('__APP_CARGADA') > -1 && (sc.textContent || '').length > 1000) appLen = Math.max(appLen, sc.textContent.length); });
     d.push('scripts en la página: ' + n + ' · el mayor tiene ' + mayor + ' caracteres');
-    d.push('script de la app (App): ' + (appLen || 'NO ENCONTRADO') + ' caracteres, esperado ' + (window.__APP_LEN_ESPERADO || '?') + (appLen && window.__APP_LEN_ESPERADO && appLen !== window.__APP_LEN_ESPERADO ? '  <-- DISTINTO (llegó alterado)' : ''));
+    d.push('App (decodificación): ' + (window.__APP_INFO ? JSON.stringify(window.__APP_INFO) : 'NO SE EJECUTÓ EL CARGADOR (¿falta el archivo App o Index es antiguo?)'));
     d.push('App cargada sin errores: ' + (window.__APP_CARGADA ? 'sí' : 'NO'));
     d.push('funciones: loadState=' + typeof window.loadState + ', setupEventListeners=' + typeof window.setupEventListeners + ', renderTreeCards=' + typeof window.renderTreeCards);
     d.push('fin de Index.html: ' + (window.__FIN_INDEX ? 'ok' : 'FALTA (archivo incompleto)'));
@@ -1529,8 +1527,7 @@
     <span id="toastMsg">Notificación</span>
   </div>
 
-  <script>window.__APP_LEN_ESPERADO = 146315;</script>
-<?!= include('App') ?>
+  <?!= include('App') ?>
 <script>window.__FIN_INDEX = true;</script>
 </body>
 </html>
