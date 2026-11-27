@@ -429,7 +429,7 @@
       </div>
 
       <!-- Viewport del Árbol con Zoom y Desplazamiento -->
-      <div id="treeViewport" class="w-[1400px] h-[900px] relative origin-center">
+      <div id="treeViewport" class="w-[1400px] h-[900px] shrink-0 relative origin-center">
 
         <svg id="treeSvg" class="w-full h-full absolute inset-0 pointer-events-none" viewBox="0 0 1400 900" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -2084,6 +2084,7 @@
       renderConfigTreesList();
       renderConfigCategories();
       updateGlobalStats();
+      if (window.requestAutoFit) window.requestAutoFit();
 
       const menu = document.getElementById('treePickerMenu');
       if (menu) menu.classList.add('hidden');
@@ -2768,6 +2769,8 @@
         cardCornerPin.setAttribute('filter', 'url(#glow)');
         connectorsGroup.appendChild(cardCornerPin);
       });
+
+      if (window.autoFitIfRequested) window.autoFitIfRequested();
     }
 
     window.editIdeaFromCard = function(ideaId) {
@@ -3855,23 +3858,60 @@
       }
 
       function setZoom(newZoom) {
-        zoomLevel = Math.max(0.3, Math.min(2.5, newZoom));
+        zoomLevel = Math.max(0.15, Math.min(2.5, newZoom));
         updateTransform(false);
       }
 
-      // Ajusta el zoom para que el árbol (1400px de ancho) quepa completo en el
-      // contenedor visible, y centra el desplazamiento. Es el estado por defecto
-      // al cargar y lo que hace el botón de "Centrar Árbol".
+      // Límites reales del contenido: el lienzo base (1400x900) más todas las tarjetas,
+      // incluso las que sobresalen del lienzo. Así el árbol se ve completo de entrada.
+      function getContentBounds() {
+        let minX = 0, minY = 0, maxX = 1400, maxY = 900;
+        document.querySelectorAll('#treeCardsContainer > *').forEach(el => {
+          const l = el.offsetLeft, t = el.offsetTop;
+          const w = el.offsetWidth, h = el.offsetHeight;
+          if (!w || !h) return;
+          minX = Math.min(minX, l); minY = Math.min(minY, t);
+          maxX = Math.max(maxX, l + w); maxY = Math.max(maxY, t + h);
+        });
+        return { minX, minY, maxX, maxY };
+      }
+
+      // Ajusta el zoom y centra el desplazamiento para que TODO el árbol (lienzo y
+      // tarjetas) quepa en el área visible. Es el estado por defecto al cargar, al
+      // cambiar de árbol y lo que hace el botón de "Centrar Árbol".
       function fitTreeToContainer() {
         const rect = canvasContainer.getBoundingClientRect();
-        const padding = 64;
-        const fitByWidth = (rect.width - padding) / 1400;
-        const fitByHeight = (rect.height - padding) / 900;
-        zoomLevel = Math.max(0.3, Math.min(2.5, Math.min(fitByWidth, fitByHeight)));
-        panX = 0;
-        panY = 0;
+        const b = getContentBounds();
+        const bw = b.maxX - b.minX, bh = b.maxY - b.minY;
+        // márgenes: arriba queda libre el aviso flotante, abajo/derecha los controles de zoom
+        const mx = 24, mTop = 64, mBottom = 24;
+        const availW = rect.width - mx * 2;
+        const availH = rect.height - mTop - mBottom;
+        zoomLevel = Math.max(0.15, Math.min(1.5, Math.min(availW / bw, availH / bh)));
+        // el punto central del contenido debe caer en el centro del área disponible
+        const bcx = (b.minX + b.maxX) / 2, bcy = (b.minY + b.maxY) / 2;
+        const targetDy = (mTop + availH / 2) - rect.height / 2;
+        panX = -zoomLevel * (bcx - 700);
+        panY = targetDy - zoomLevel * (bcy - 450);
         updateTransform(false);
       }
+
+      // Ajuste automático: activo al cargar y al cambiar de árbol, mientras la persona
+      // no tome el control del zoom/desplazamiento. Se reaplica cuando se vuelven a
+      // dibujar las tarjetas (fuentes, datos de la nube) dentro de la ventana de tiempo.
+      let autoFitUntil = Date.now() + 8000;
+      window.requestAutoFit = function () {
+        userTookControlOfZoom = false;
+        autoFitUntil = Date.now() + 4000;
+        fitTreeToContainer();
+      };
+      // Tocar o arrastrar una tarjeta también cuenta como tomar el control: la vista no se mueve sola.
+      canvasContainer.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.glass-card')) userTookControlOfZoom = true;
+      }, true);
+      window.autoFitIfRequested = function () {
+        if (!userTookControlOfZoom && Date.now() < autoFitUntil) fitTreeToContainer();
+      };
 
       if (zoomInBtn) {
         zoomInBtn.onclick = (e) => {
@@ -3903,7 +3943,7 @@
         e.preventDefault();
         userTookControlOfZoom = true;
         const zoomFactor = e.deltaY < 0 ? 1.035 : 0.965;
-        const newZoom = Math.max(0.3, Math.min(2.5, zoomLevel * zoomFactor));
+        const newZoom = Math.max(0.15, Math.min(2.5, zoomLevel * zoomFactor));
         if (newZoom === zoomLevel) return;
 
         const rect = treeViewport.getBoundingClientRect();
@@ -3975,7 +4015,7 @@
             e.touches[0].clientY - e.touches[1].clientY
           );
           const factor = currentDist / touchStartDist;
-          zoomLevel = Math.max(0.3, Math.min(2.5, zoomLevel * factor));
+          zoomLevel = Math.max(0.15, Math.min(2.5, zoomLevel * factor));
           updateTransform(true);
           touchStartDist = currentDist;
         }
@@ -3994,10 +4034,7 @@
       // tamaño hasta que el usuario interactúa manualmente con el zoom/pan
       // (userTookControlOfZoom), momento en que se deja de pisar su ajuste.
       const initialFitObserver = new ResizeObserver(() => {
-        if (userTookControlOfZoom) {
-          initialFitObserver.disconnect();
-          return;
-        }
+        if (userTookControlOfZoom) return;
         const rect = canvasContainer.getBoundingClientRect();
         if (rect.width > 100 && rect.height > 100) {
           fitTreeToContainer();
