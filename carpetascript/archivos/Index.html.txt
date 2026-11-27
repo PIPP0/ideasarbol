@@ -5,7 +5,7 @@
 <script>
 /* Diagnóstico: si algo falla, aparece un aviso rojo con el detalle (se puede copiar y enviar). */
 (function () {
-  window.__PORT = '2026-11-27-diag4';
+  window.__PORT = '2026-11-27-v5';
   var errs = [], banner = null;
   // Si el navegador bloquea localStorage dentro de Apps Script, se usa una memoria temporal (sin errores)
   try { var t = window.localStorage; t.setItem('__t', '1'); t.removeItem('__t'); }
@@ -42,6 +42,7 @@
       banner.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:2147483647;max-width:min(560px,calc(100vw - 24px));background:#5D090A;color:#fff;border-radius:12px;padding:12px 14px;font:13px/1.45 system-ui,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.4);max-height:60vh;overflow:auto';
       document.body.appendChild(banner);
     }
+    var ov = document.getElementById('dsCargando'); if (ov) ov.remove();
     banner.innerHTML = '';
     var h = document.createElement('div'); h.style.cssText = 'font-weight:700;margin-bottom:6px'; h.textContent = 'Aviso: la aplicación tuvo un problema'; banner.appendChild(h);
     var pre = document.createElement('pre'); pre.style.cssText = 'white-space:pre-wrap;margin:0 0 8px;font:12px/1.4 ui-monospace,monospace';
@@ -63,6 +64,7 @@
   }, true);
   window.addEventListener('unhandledrejection', function (e) { errs.push('Promesa rechazada: ' + ((e.reason && e.reason.message) || e.reason)); show(); });
   window.addEventListener('load', function () {
+    setTimeout(function () { var ov = document.getElementById('dsCargando'); if (ov) ov.remove(); }, 12000);
     setTimeout(function () {
       if (!window.__APP_LISTO) { errs.push('La aplicación no terminó de iniciar.'); show(); }
       else if (!window.__FIN_INDEX) { errs.push('Index.html parece incompleto (falta el final).'); show(); }
@@ -396,6 +398,12 @@
   </style>
 </head>
 <body id="appBody" class="h-full overflow-hidden flex flex-col font-sans select-none dot-grid transition-colors duration-500">
+<div id="dsCargando" style="position:fixed;inset:0;z-index:2147483000;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font:16px/1.4 system-ui,sans-serif;color:#3D4F5C">
+  <div style="width:44px;height:44px;border:4px solid #E0E6EB;border-top-color:#248910;border-radius:50%;animation:dsgiro .9s linear infinite"></div>
+  <div id="dsCargandoTxt">Cargando Árbol de Ideas…</div>
+</div>
+<style>@keyframes dsgiro{to{transform:rotate(360deg)}}</style>
+
 
   <!-- Capa de Imagen de Fondo Personalizada -->
   <div id="customBgOverlay" class="absolute inset-0 bg-cover bg-center pointer-events-none opacity-0 transition-opacity duration-500 z-0"></div>

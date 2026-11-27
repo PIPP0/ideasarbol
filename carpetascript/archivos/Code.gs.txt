@@ -22,12 +22,16 @@ function doGet(e) {
   var email = emailActual_();
   var t = HtmlService.createTemplateFromFile('Index');
   // Se entrega a la página: parámetros de la URL (?tree=, ?estilo=), la URL base de la app y las preferencias de la persona
+  var usuario = leerUsuario_(email);
+  var estado = leerEstado_();
   t.boot = JSON.stringify({
     params: (e && e.parameter) || {},
     baseUrl: ScriptApp.getService().getUrl(),
     email: email,
-    prefs: leerUsuario_(email).prefs || {}
-  }).replace(/</g, '\\u003c');
+    prefs: usuario.prefs || {},
+    // estado inicial incluido en la página: la app arranca sin esperar otra llamada al servidor
+    estado: { trees: estado.trees, appConfig: estado.appConfig, version: estado.version, userVotes: usuario.votes || {} }
+  }).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
   return t.evaluate()
     .setTitle(TITULO)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
@@ -147,25 +151,74 @@ function archivo_(clave, nombre, contenidoInicial) {
   return f;
 }
 
+// ----- Caché (rápido): evita leer Drive en cada visita. Se escribe junto con Drive (write-through). -----
+var CACHE_TTL_ = 21600; // 6 horas
+
+function cachePut_(clave, obj) {
+  try {
+    var cache = CacheService.getScriptCache(), txt = JSON.stringify(obj), N = 30000, n = Math.max(1, Math.ceil(txt.length / N)), pares = {};
+    pares[clave + ':n'] = String(n);
+    for (var i = 0; i < n; i++) pares[clave + ':' + i] = txt.substr(i * N, N);
+    cache.putAll(pares, CACHE_TTL_);
+  } catch (e) { /* si falla, se usa Drive */ }
+}
+
+function cacheGet_(clave) {
+  try {
+    var cache = CacheService.getScriptCache(), n = Number(cache.get(clave + ':n') || 0);
+    if (!n) return null;
+    var claves = [];
+    for (var i = 0; i < n; i++) claves.push(clave + ':' + i);
+    var got = cache.getAll(claves), txt = '';
+    for (var k = 0; k < claves.length; k++) { if (got[claves[k]] === undefined) return null; txt += got[claves[k]]; }
+    return JSON.parse(txt);
+  } catch (e) { return null; }
+}
+
+function cacheDel_(clave) {
+  try {
+    var cache = CacheService.getScriptCache(), n = Number(cache.get(clave + ':n') || 0), claves = [clave + ':n'];
+    for (var i = 0; i < n; i++) claves.push(clave + ':' + i);
+    cache.removeAll(claves);
+  } catch (e) {}
+}
+
+/** Si editas estado.json o usuarios.json a mano en Drive, ejecuta esta función para que la app lea lo nuevo. */
+function limpiarCache() {
+  cacheDel_('estado'); cacheDel_('usuarios');
+  Logger.log('Caché limpiada.');
+}
+
 function leerJson_(f) {
   var texto = f.getBlob().getDataAsString('UTF-8');
   return JSON.parse(texto);
 }
 
 function leerEstado_() {
-  return leerJson_(archivo_('ESTADO_ID', 'estado.json', '{}'));
+  var c = cacheGet_('estado');
+  if (c && c.trees && c.trees.length) return c;
+  var e = leerJson_(archivo_('ESTADO_ID', 'estado.json', '{}'));
+  if (e && e.trees && e.trees.length) cachePut_('estado', e);
+  return e;
 }
 
 function escribirEstado_(estado) {
   archivo_('ESTADO_ID', 'estado.json', '{}').setContent(JSON.stringify(estado));
   PropertiesService.getScriptProperties().setProperty('VERSION', String(estado.version || 0));
+  cachePut_('estado', estado);
+}
+
+function leerUsuarios_() {
+  var c = cacheGet_('usuarios');
+  if (c) return c;
+  var u = {};
+  try { u = leerJson_(archivo_('USUARIOS_ID', 'usuarios.json', '{}')); } catch (e) { u = {}; }
+  cachePut_('usuarios', u);
+  return u;
 }
 
 function leerUsuario_(email) {
-  try {
-    var todos = leerJson_(archivo_('USUARIOS_ID', 'usuarios.json', '{}'));
-    return todos[email] || {};
-  } catch (e) { return {}; }
+  try { return leerUsuarios_()[email] || {}; } catch (e) { return {}; }
 }
 
 function actualizarUsuario_(email, fn) {
@@ -178,6 +231,7 @@ function actualizarUsuario_(email, fn) {
     fn(u);
     todos[email] = u;
     f.setContent(JSON.stringify(todos));
+    cachePut_('usuarios', todos);
     return true;
   } finally {
     lock.releaseLock();
