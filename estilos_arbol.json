@@ -1,0 +1,89 @@
+{
+  "descripcion": "Variantes visuales del Árbol de Ideas. Todos los colores, radios y sombras son referencias al Sistema de Diseño BCI (design_system_bci.json). Se elige con ?estilo=<id> o con el selector de la parte inferior.",
+  "estiloPorDefecto": "editorial",
+  "estilos": [
+    {
+      "id": "editorial",
+      "nombre": "Editorial",
+      "descripcion": "Claro y sobrio: lienzo blanco, trazos nítidos sin brillos, nodos en anillo.",
+      "modo": "claro",
+      "lienzo": { "fondo": "{colors.palette.white.main}", "luz": "{colors.palette.gray.50}", "malla": "{colors.palette.gray.100}" },
+      "tronco": "{colors.palette.gray.700}",
+      "ramas": "color",
+      "nodos": "anillo",
+      "follaje": "oculto",
+      "categorias": {
+        "metrics":     { "linea": "{colors.palette.blue.500}",  "texto": "{colors.palette.blue.700}" },
+        "spontaneous": { "linea": "{colors.palette.green.600}", "texto": "{colors.palette.green.800}" },
+        "pain":        { "linea": "{colors.palette.red.500}",   "texto": "{colors.palette.red.700}" },
+        "bank":        { "linea": "{colors.palette.blue.800}",  "texto": "{colors.palette.blue.800}" }
+      },
+      "tarjeta": { "radio": "{borderRadius.md}", "sombra": "md" },
+      "franjaLogo": false
+    },
+    {
+      "id": "colores-bci",
+      "nombre": "Colores Bci",
+      "descripcion": "Los cuatro colores del logo (azul, verde, rojo, amarillo) como identidad del árbol, con franja de marca en el encabezado.",
+      "modo": "claro",
+      "lienzo": { "fondo": "{colors.palette.gray.50}", "luz": "{colors.palette.white.main}", "malla": "{colors.palette.gray.200}" },
+      "tronco": "{colors.palette.green.800}",
+      "ramas": "color",
+      "nodos": "solido",
+      "follaje": "oculto",
+      "categorias": {
+        "metrics":     { "linea": "{colors.palette.blue.500}",   "texto": "{colors.palette.blue.700}" },
+        "spontaneous": { "linea": "{colors.palette.green.600}",  "texto": "{colors.palette.green.800}" },
+        "pain":        { "linea": "{colors.palette.red.500}",    "texto": "{colors.palette.red.700}" },
+        "bank":        { "linea": "{colors.palette.yellow.500}", "texto": "{colors.palette.yellow.800}" }
+      },
+      "tarjeta": { "radio": "{borderRadius.md}", "sombra": "md" },
+      "franjaLogo": ["{colors.palette.red.500}", "{colors.palette.yellow.500}", "{colors.palette.green.500}", "{colors.palette.blue.500}"]
+    },
+    {
+      "id": "noche",
+      "nombre": "Noche",
+      "descripcion": "Azul profundo de la marca: alto contraste, brillo suave solo donde aporta, tarjetas azul 800.",
+      "modo": "oscuro",
+      "lienzo": { "fondo": "{colors.palette.blue.900}", "luz": "{colors.palette.blue.800}", "malla": "{colors.palette.blue.800}" },
+      "tronco": "{colors.palette.blue.600}",
+      "ramas": "color",
+      "nodos": "solido",
+      "follaje": "suave",
+      "categorias": {
+        "metrics":     { "linea": "{colors.palette.blue.300}",   "texto": "{colors.palette.blue.200}" },
+        "spontaneous": { "linea": "{colors.palette.green.400}",  "texto": "{colors.palette.green.300}" },
+        "pain":        { "linea": "{colors.palette.red.400}",    "texto": "{colors.palette.red.200}" },
+        "bank":        { "linea": "{colors.palette.yellow.400}", "texto": "{colors.palette.yellow.300}" }
+      },
+      "tarjeta": { "radio": "{borderRadius.md}", "sombra": "lg" },
+      "franjaLogo": false
+    },
+    {
+      "id": "botanico",
+      "nombre": "Botánico",
+      "descripcion": "Ilustración plana y cálida: ramas de tinta gris, copa en manchas suaves sin difuminar, tarjetas más redondeadas.",
+      "modo": "claro",
+      "lienzo": { "fondo": "{colors.palette.gray.50}", "luz": "{colors.palette.white.main}", "malla": "{colors.palette.gray.200}" },
+      "tronco": "{colors.palette.gray.800}",
+      "ramas": "tinta",
+      "tinta": "{colors.palette.gray.600}",
+      "nodos": "solido",
+      "follaje": "plano",
+      "follajeColores": {
+        "emerald": "{colors.palette.green.100}",
+        "blue": "{colors.palette.blue.100}",
+        "violet": "{colors.palette.yellow.100}",
+        "rose": "{colors.palette.red.100}"
+      },
+      "categorias": {
+        "metrics":     { "linea": "{colors.palette.blue.500}",   "texto": "{colors.palette.blue.700}" },
+        "spontaneous": { "linea": "{colors.palette.green.600}",  "texto": "{colors.palette.green.800}" },
+        "pain":        { "linea": "{colors.palette.red.500}",    "texto": "{colors.palette.red.700}" },
+        "bank":        { "linea": "{colors.palette.yellow.600}", "texto": "{colors.palette.yellow.800}" }
+      },
+      "tarjeta": { "radio": "{borderRadius.lg}", "sombra": "lg" },
+      "franjaLogo": false
+    }
+  ]
+}
