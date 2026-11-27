@@ -517,6 +517,7 @@
           '</g>';
         b.innerHTML = svg;
       });
+      window.DS_BIRD = { colors: palette, dark: dark, beak: beakFor, ink: g[700] };
     } catch (e) { console.warn('[Tema Bci] aves', e); }
 
     // ---------- Panel Ajustes > Temas: los estilos del sistema de diseño ----------
