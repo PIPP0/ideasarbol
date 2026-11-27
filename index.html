@@ -3966,10 +3966,11 @@
       const treeViewport = document.getElementById('treeViewport');
       let userTookControlOfZoom = false;
 
-      // El zoom mínimo nunca baja del 50 %, en ninguna pantalla (así el árbol no queda diminuto).
-      // Al entrar, el árbol se ve completo ajustado a la pantalla; en pantallas tan chicas que el
-      // ajuste completo exigiría menos de 50 %, se queda en 50 % y se recorre arrastrando (siempre
-      // dentro de sus bordes).
+      // El zoom mínimo es el MÁS CHICO que deja ver el árbol completo, con estas reglas:
+      //  - nunca por encima del ajuste a la pantalla (en el mínimo el árbol siempre se ve completo);
+      //  - no baja del 50 % mientras la pantalla lo permita, ni de la mitad del ajuste.
+      // En ventanas pequeñas, donde el ajuste ya es menor a 50 %, el mínimo pasa a ser el propio ajuste:
+      // se ve completo y se adapta a la pantalla.
       const ZOOM_MAX = 2.5;
       const ZOOM_FLOOR = 0.5;
       const MIN_VS_FIT = 0.5;
@@ -4070,7 +4071,7 @@
       function refreshZoomMin() {
         const f = computeFit();
         boundsCache = f.b;
-        zoomMin = Math.max(ZOOM_FLOOR, f.z * MIN_VS_FIT);
+        zoomMin = Math.min(f.z, Math.max(ZOOM_FLOOR, f.z * MIN_VS_FIT));
         return f;
       }
       // Tras cambios de tamaño o de tarjetas: recalcula límites, respeta el mínimo y devuelve el árbol al marco
@@ -4084,16 +4085,19 @@
       // tarjetas) quepa en el área visible. Es el estado por defecto al cargar, al
       // cambiar de árbol y lo que hace el botón de "Ver todo el árbol".
       let lastFitZoom = null;
-      function fitTreeToContainer() {
-        const f = refreshZoomMin();
+      // Centra el contenido (dibujo + tarjetas) en el área disponible para un zoom dado
+      function placeContent(f, z) {
         const b = f.b;
-        lastFitZoom = f.z;
-        zoomLevel = Math.max(f.z, zoomMin);
-        // el punto central del contenido debe caer en el centro del área disponible
         const bcx = (b.minX + b.maxX) / 2, bcy = (b.minY + b.maxY) / 2;
         const targetDy = (FIT_MARGIN.top + f.availH / 2) - f.rect.height / 2;
-        panX = -zoomLevel * (bcx - 700);
-        panY = targetDy - zoomLevel * (bcy - 450);
+        panX = -z * (bcx - 700);
+        panY = targetDy - z * (bcy - 450);
+      }
+      function fitTreeToContainer() {
+        const f = refreshZoomMin();
+        lastFitZoom = f.z;
+        zoomLevel = f.z;
+        placeContent(f, zoomLevel);
         updateTransform(false);
       }
 
@@ -4263,7 +4267,17 @@
           const rect0 = canvasContainer.getBoundingClientRect();
           if (rect0.width > 100 && rect0.height > 100) {
             const prev = lastFitZoom;
+            const prevMin = zoomMin;
+            const wasAtMin = zoomLevel <= prevMin * 1.03;
             const f = refreshZoomMin();
+            if (wasAtMin) {
+              // estaba en el mínimo: sigue en el mínimo de la pantalla nueva (árbol completo a la vista)
+              zoomLevel = zoomMin;
+              placeContent(f, zoomLevel);
+              lastFitZoom = f.z;
+              updateTransform(true);
+              return;
+            }
             if (prev && f.z !== prev) {
               if (Math.abs(zoomLevel / prev - 1) < 0.03) {
                 fitTreeToContainer(); // estaba viendo el árbol completo: sigue viéndolo completo
