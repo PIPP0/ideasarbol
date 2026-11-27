@@ -1,5 +1,5 @@
 {
-  "descripcion": "Variantes visuales del Árbol de Ideas. Todos los colores, radios y sombras son referencias al Sistema de Diseño BCI (design_system_bci.json). Se elige con ?estilo=<id> o con el selector de la parte inferior.",
+  "descripcion": "Variantes visuales del Árbol de Ideas. Todos los colores, radios y sombras son referencias al Sistema de Diseño BCI (design_system_bci.json). Se elige en Ajustes > Temas, o con ?estilo=<id> en la URL. Los estilos con enTemas=false siguen disponibles por URL pero no se ofrecen en el panel.",
   "estiloPorDefecto": "sitio-bci",
   "estilos": [
     {
@@ -41,7 +41,9 @@
         "radio": "{borderRadius.md}",
         "sombra": "sm"
       },
-      "franjaLogo": false
+      "franjaLogo": false,
+      "enTemas": true,
+      "descripcionCorta": "Como bci.cl: barra oscura, botones en píldora y figuras de marca."
     },
     {
       "id": "editorial",
@@ -79,7 +81,8 @@
         "radio": "{borderRadius.md}",
         "sombra": "md"
       },
-      "franjaLogo": false
+      "franjaLogo": false,
+      "enTemas": false
     },
     {
       "id": "colores-bci",
@@ -122,7 +125,8 @@
         "{colors.palette.yellow.500}",
         "{colors.palette.green.500}",
         "{colors.palette.blue.500}"
-      ]
+      ],
+      "enTemas": false
     },
     {
       "id": "noche",
@@ -160,7 +164,9 @@
         "radio": "{borderRadius.md}",
         "sombra": "lg"
       },
-      "franjaLogo": false
+      "franjaLogo": false,
+      "enTemas": true,
+      "descripcionCorta": "Azul profundo de la marca, alto contraste."
     },
     {
       "id": "botanico",
@@ -205,7 +211,9 @@
         "radio": "{borderRadius.lg}",
         "sombra": "lg"
       },
-      "franjaLogo": false
+      "franjaLogo": false,
+      "enTemas": true,
+      "descripcionCorta": "Ramas de tinta y copa en manchas planas."
     }
   ]
 }

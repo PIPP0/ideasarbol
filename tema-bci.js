@@ -35,6 +35,11 @@
   try { wanted = new URLSearchParams(location.search).get('estilo'); } catch (e) {}
   if (!wanted) { try { wanted = localStorage.getItem(STORE_KEY); } catch (e) {} }
   var estilos = estilosFile.estilos || [];
+  var fromUrl = false;
+  try { fromUrl = !!new URLSearchParams(location.search).get('estilo'); } catch (e) {}
+  var ofrecidos = estilos.filter(function (x) { return x.enTemas !== false; });
+  // un estilo guardado que ya no se ofrece en Temas se ignora (por URL sí se puede abrir)
+  if (!fromUrl && wanted && !ofrecidos.some(function (x) { return x.id === wanted; })) wanted = null;
   var E = estilos.filter(function (x) { return x.id === wanted; })[0] ||
           estilos.filter(function (x) { return x.id === estilosFile.estiloPorDefecto; })[0] ||
           estilos[0];
@@ -463,37 +468,89 @@
       } catch (e) { console.warn('[Tema Bci] barra superior', e); }
     }
 
+    // ---------- Panel Ajustes > Temas: los estilos del sistema de diseño ----------
     try {
-      var host = document.getElementById('canvasContainer');
-      if (!host || estilos.length < 2) return;
-      var bar = document.createElement('div');
-      bar.id = 'dsStyleSwitcher';
-      bar.setAttribute('role', 'group');
-      bar.setAttribute('aria-label', 'Estilo visual');
-      bar.style.cssText = 'position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:35;display:flex;gap:4px;align-items:center;padding:5px;border-radius:9999px;' +
-        'background:' + (LIGHT ? '#fff' : bl[900]) + ';border:1px solid ' + (LIGHT ? g[100] : bl[700]) + ';box-shadow:' + SH.md + ';font-family:' + font;
-      var lbl = document.createElement('span');
-      lbl.textContent = 'Estilo';
-      lbl.style.cssText = 'font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:0 8px 0 10px;color:' + (LIGHT ? g[600] : bl[200]);
-      bar.appendChild(lbl);
-      estilos.forEach(function (st, i) {
+      var modal = document.getElementById('configModal');
+      var lblEl = modal && [].slice.call(modal.querySelectorAll('label')).filter(function (l) { return /Temas y Colores/i.test(l.textContent); })[0];
+      if (!lblEl) return;
+      lblEl.textContent = 'Temas y estilos';
+      var head = lblEl.parentElement;
+      var grid = head.nextElementSibling;
+      var resetBtn = head.querySelector('button');
+      var cardBorder = LIGHT ? g[200] : bl[700], cardInk = LIGHT ? g[900] : P.white.main, cardSub = LIGHT ? g[600] : bl[200];
+
+      var pick = function (id) {
+        try { localStorage.setItem(STORE_KEY, id); } catch (e) {}
+        var u = new URL(location.href);
+        u.searchParams.delete('estilo');
+        location.href = u.toString();
+      };
+
+      // Miniatura generada con los mismos tokens de cada estilo
+      var mini = function (st) {
+        var c = function (v) { return res(v); };
+        var cats = st.categorias || {};
+        var col = function (k) { return c((cats[k] || {}).linea || '{colors.palette.gray.500}'); };
+        var ink = st.ramas === 'tinta' ? c(st.tinta || st.tronco) : null;
+        var dark = st.modo === 'oscuro';
+        var bg = c(st.lienzo.fondo);
+        var sv = '<svg viewBox="0 0 160 70" width="100%" height="70" xmlns="http://www.w3.org/2000/svg" style="display:block;border-radius:8px">' +
+          '<rect width="160" height="70" fill="' + bg + '"/>';
+        if (st.referencia === 'bci.cl') {
+          sv += '<rect width="160" height="9" fill="' + c(st.franjaSuperior) + '"/><rect x="0" y="9" width="30" height="61" fill="' + c(st.panelLateral) + '"/>' +
+            '<rect x="6" y="16" width="5" height="5" fill="' + rd.primary + '"/><circle cx="16" cy="18.5" r="2.5" fill="' + gr.primary + '"/><rect x="21" y="16" width="5" height="5" fill="' + bl.dark + '"/>';
+        } else {
+          sv += '<rect width="30" height="70" fill="' + (dark ? bl[800] : c(st.lienzo.luz)) + '" opacity="' + (dark ? '1' : '.7') + '"/>';
+        }
+        if (st.follaje === 'plano' && st.follajeColores) {
+          sv += '<circle cx="62" cy="26" r="13" fill="' + c(st.follajeColores.blue) + '"/><circle cx="105" cy="22" r="14" fill="' + c(st.follajeColores.emerald) + '"/><circle cx="140" cy="30" r="12" fill="' + c(st.follajeColores.rose) + '"/>';
+        }
+        var tr = c(st.tronco);
+        var br = [['M95 62 C80 50 66 38 58 28', 'metrics'], ['M95 62 C95 46 96 34 100 22', 'spontaneous'], ['M95 62 C112 52 126 42 138 32', 'pain'], ['M95 62 C115 60 130 54 148 50', 'bank']];
+        br.forEach(function (b) { sv += '<path d="' + b[0] + '" stroke="' + (ink || col(b[1])) + '" stroke-width="2.4" fill="none" stroke-linecap="round"/>'; });
+        br.forEach(function (b) {
+          var m = b[0].split(' ').slice(-2), x = m[0], y = m[1];
+          var pts = b[0].match(/-?\d+(\.\d+)?/g); var ex = pts[pts.length - 2], ey = pts[pts.length - 1];
+          sv += '<circle cx="' + ex + '" cy="' + ey + '" r="3.4" fill="' + col(b[1]) + '" stroke="' + (dark ? bg : '#fff') + '" stroke-width="1.2"/>';
+        });
+        sv += '<path d="M90 70 L95 56 L100 70 Z" fill="' + tr + '"/></svg>';
+        return sv;
+      };
+
+      grid.className = 'grid grid-cols-1 sm:grid-cols-3 gap-3';
+      grid.innerHTML = '';
+      ofrecidos.forEach(function (st) {
+        var on = st.id === E.id;
         var b = document.createElement('button');
         b.type = 'button';
-        b.title = st.descripcion || st.nombre;
-        b.textContent = (i + 1) + ' · ' + st.nombre;
-        var on = st.id === E.id;
-        b.style.cssText = 'cursor:pointer;border:0;border-radius:9999px;padding:6px 12px;font-size:12px;font-weight:600;white-space:nowrap;font-family:' + font + ';' +
-          (on ? 'background:' + gr[700] + ';color:#fff' : 'background:transparent;color:' + (LIGHT ? g[700] : bl[100]));
-        b.onclick = function (ev) {
-          ev.stopPropagation();
-          try { localStorage.setItem(STORE_KEY, st.id); } catch (e) {}
-          var u = new URL(location.href);
-          u.searchParams.set('estilo', st.id);
-          location.href = u.toString();
-        };
-        bar.appendChild(b);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.setAttribute('data-estilo', st.id);
+        b.style.cssText = 'text-align:left;cursor:pointer;padding:10px;border-radius:12px;font-family:' + font + ';background:' + (LIGHT ? '#fff' : bl[900]) +
+          ';border:2px solid ' + (on ? gr[700] : cardBorder) + ';box-shadow:' + (on ? SH.md : 'none') + ';transition:border-color .15s,box-shadow .15s';
+        b.onmouseenter = function () { if (!on) b.style.borderColor = gr[600]; };
+        b.onmouseleave = function () { if (!on) b.style.borderColor = cardBorder; };
+        b.innerHTML = '<div style="margin-bottom:8px;border:1px solid ' + (LIGHT ? g[100] : bl[700]) + ';border-radius:8px;overflow:hidden">' + mini(st) + '</div>' +
+          '<div style="font-size:14px;font-weight:700;color:' + cardInk + '">' + st.nombre + '</div>' +
+          '<div style="font-size:12px;line-height:16px;color:' + cardSub + ';margin-top:2px">' + (st.descripcionCorta || st.descripcion) + '</div>' +
+          (on ? '<div style="margin-top:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:' + (LIGHT ? gr[700] : gr[300]) + '">✓ Activo</div>' : '');
+        b.onclick = function (ev) { ev.stopPropagation(); if (!on) pick(st.id); };
+        grid.appendChild(b);
       });
-      host.appendChild(bar);
-    } catch (e) { console.warn('[Tema Bci] selector', e); }
+
+      // «Restablecer»: vuelve al estilo por defecto (el fondo ya lo define el estilo)
+      if (resetBtn) {
+        resetBtn.removeAttribute('onclick');
+        resetBtn.innerHTML = '<i class="fa-solid fa-arrow-rotate-left text-[10px] text-emerald-400"></i> Restablecer estilo';
+        resetBtn.onclick = function (ev) {
+          ev.stopPropagation();
+          var def = ofrecidos.filter(function (x) { return x.id === estilosFile.estiloPorDefecto; })[0] || ofrecidos[0];
+          if (def && def.id !== E.id) pick(def.id);
+        };
+      }
+      // La imagen de fondo personalizada no aplica con los estilos (cambiaría el fondo del otro sitio al compartir datos)
+      var bgInput = document.getElementById('customBgUrlInput');
+      var bgBlock = bgInput && bgInput.closest('.pt-3');
+      if (bgBlock) bgBlock.style.display = 'none';
+    } catch (e) { console.warn('[Tema Bci] panel de temas', e); }
   });
 })();
