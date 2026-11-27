@@ -3977,7 +3977,35 @@
       const zoomToSlider = (z) => Math.max(0, Math.min(100, 100 * Math.log(z / zoomMin) / Math.log(ZOOM_MAX / zoomMin)));
       const sliderToZoom = (v) => zoomMin * Math.pow(ZOOM_MAX / zoomMin, v / 100);
 
+      // Márgenes mínimos: arriba queda libre el aviso flotante; abajo/derecha están los controles de zoom
+      const FIT_MARGIN = { x: 10, top: 48, bottom: 10 };
+
+      // El árbol nunca puede salir del marco: si cabe en pantalla, se mantiene completo dentro;
+      // si está ampliado más que la pantalla, no se puede arrastrar más allá de sus bordes.
+      let boundsCache = null;
+      function axisRange(size, start, end, m0, m1) {
+        const base = size / 2 + zoomLevel * (start - 700); // (el origen de escala es el centro del lienzo base)
+        const len = zoomLevel * (end - start);
+        const a = m0 - base;
+        const b = size - m1 - len - base;
+        return [Math.min(a, b), Math.max(a, b)];
+      }
+      function clampPan() {
+        const rect = canvasContainer.getBoundingClientRect();
+        if (rect.width < 100 || rect.height < 100) return;
+        const b = boundsCache || (boundsCache = getContentBounds());
+        const [x0, x1] = axisRange(rect.width, b.minX, b.maxX, FIT_MARGIN.x, FIT_MARGIN.x);
+        panX = Math.max(x0, Math.min(x1, panX));
+        // vertical: el origen de escala es el centro vertical del lienzo base (450)
+        const base = rect.height / 2 + zoomLevel * (b.minY - 450);
+        const len = zoomLevel * (b.maxY - b.minY);
+        const a = FIT_MARGIN.top - base;
+        const c = rect.height - FIT_MARGIN.bottom - len - base;
+        panY = Math.max(Math.min(a, c), Math.min(Math.max(a, c), panY));
+      }
+
       function updateTransform(disableTransition = false) {
+        clampPan();
         if (disableTransition) {
           treeViewport.style.transition = 'none';
         } else {
@@ -4026,8 +4054,6 @@
         return { minX, minY, maxX, maxY };
       }
 
-      // Márgenes mínimos: arriba queda libre el aviso flotante; abajo/derecha están los controles de zoom
-      const FIT_MARGIN = { x: 10, top: 48, bottom: 10 };
       function computeFit() {
         const rect = canvasContainer.getBoundingClientRect();
         const b = getContentBounds();
@@ -4040,8 +4066,15 @@
       // Recalcula el mínimo permitido (ajuste a pantalla × 50 %)
       function refreshZoomMin() {
         const f = computeFit();
+        boundsCache = f.b;
         zoomMin = Math.max(0.05, f.z * MIN_VS_FIT);
         return f;
+      }
+      // Tras cambios de tamaño o de tarjetas: recalcula límites, respeta el mínimo y devuelve el árbol al marco
+      function enforceView() {
+        refreshZoomMin();
+        if (zoomLevel < zoomMin) zoomLevel = zoomMin;
+        updateTransform(true);
       }
 
       // Ajusta el zoom y centra el desplazamiento para que TODO el árbol (dibujo y
@@ -4074,7 +4107,7 @@
       }, true);
       window.autoFitIfRequested = function () {
         if (!userTookControlOfZoom && Date.now() < autoFitUntil) fitTreeToContainer();
-        else refreshZoomMin();
+        else enforceView();
       };
 
       // Pasos proporcionales (+25 % / −20 %): se sienten parejos y son fáciles de revertir
@@ -4221,7 +4254,7 @@
       // tamaño hasta que el usuario interactúa manualmente con el zoom/pan
       // (userTookControlOfZoom), momento en que se deja de pisar su ajuste.
       const initialFitObserver = new ResizeObserver(() => {
-        if (userTookControlOfZoom) { refreshZoomMin(); return; }
+        if (userTookControlOfZoom) { enforceView(); return; }
         const rect = canvasContainer.getBoundingClientRect();
         if (rect.width > 100 && rect.height > 100) {
           fitTreeToContainer();
