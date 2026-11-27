@@ -1971,6 +1971,30 @@
       }).catch(err => console.error('Error guardando en Firestore (se sigue usando el almacenamiento local):', err));
     }
 
+    // Deja cada árbol con categorías/ideas/stackIndex consistentes, sin resucitar
+    // árboles demo que el usuario haya eliminado a propósito (por eso NO se mezcla
+    // aquí con DEMO_TREES; ese paso solo corre una vez, en el arranque local).
+    function normalizeAllTrees() {
+      trees.forEach(tree => {
+        if (!tree.categories) {
+          tree.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+        } else {
+          Object.keys(DEFAULT_CATEGORIES).forEach(k => {
+            if (!tree.categories[k]) {
+              tree.categories[k] = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES[k]));
+            } else if (!tree.categories[k].desc) {
+              tree.categories[k].desc = DEFAULT_CATEGORIES[k].desc;
+            }
+          });
+        }
+        if (!Array.isArray(tree.ideas)) {
+          tree.ideas = [];
+        }
+        tree.ideas.forEach(normalizeIdeaFields);
+        assignStackIndexes(tree.ideas);
+      });
+    }
+
     // Escucha en vivo los cambios en Firestore: si alguien más (u otro dispositivo/
     // navegador tuyo) edita el árbol, este cliente se actualiza solo, sin recargar.
     function subscribeToFirestore() {
