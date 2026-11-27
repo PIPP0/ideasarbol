@@ -33,7 +33,7 @@
   </script>
 
   <!-- Tema Bci: aplica el diseño definido en design_system_bci.json -->
-  <script src="tema-bci.js?v=20261126e"></script>
+  <script src="tema-bci.js?v=20261126f"></script>
 
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -261,6 +261,14 @@
     .flying-bird-4 { animation: birdFlightPath1 17s infinite linear 10.5s; }
     .flying-bird-5 { animation: birdFlightPath2 22s infinite linear 14s; }
 
+    /* Tarjeta acercada con un toque */
+    #focusBackBtn:not(.hidden) { display:flex; }
+    #treeCardsContainer .glass-card, #treeCardsContainer .glass-card-light { transition: opacity .25s ease, box-shadow .25s ease; }
+    #treeCardsContainer.tree-has-focus .glass-card:not(.card-focused),
+    #treeCardsContainer.tree-has-focus .glass-card-light:not(.card-focused) { opacity: .38; }
+    html body #treeCardsContainer .glass-card.card-focused,
+    html body #treeCardsContainer .glass-card-light.card-focused { z-index: 60 !important; opacity: 1; box-shadow: 0 0 0 2px #10b981, 0 22px 48px rgba(0,0,0,.28) !important; }
+
     /* Deslizador de zoom */
     .zoom-slider { -webkit-appearance:none; appearance:none; width:112px; height:28px; background:transparent; cursor:pointer; margin:0 4px; }
     .zoom-slider::-webkit-slider-runnable-track { height:4px; border-radius:9999px; background:rgba(148,163,184,.45); }
@@ -457,6 +465,11 @@
           <i class="fa-solid fa-compress text-xs"></i>
         </button>
       </div>
+
+      <!-- Volver desde una tarjeta acercada -->
+      <button id="focusBackBtn" type="button" class="hidden absolute top-14 left-1/2 -translate-x-1/2 z-30 glass-panel px-4 py-1.5 rounded-full border border-emerald-500/40 text-emerald-300 text-xs font-semibold items-center gap-2 shadow-xl" aria-label="Volver a la vista anterior">
+        <i class="fa-solid fa-arrow-left text-[10px]"></i><span>Volver a la vista completa</span><kbd class="ml-1 px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300">Esc</kbd>
+      </button>
 
       <!-- Banner de Ayuda -->
       <div id="dragHelpNotice" class="absolute top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap max-w-[94%] pointer-events-none glass-panel px-4 py-1.5 rounded-full border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 z-10 opacity-90 shadow-xl transition duration-300">
@@ -3965,6 +3978,8 @@
       const canvasContainer = document.getElementById('canvasContainer');
       const treeViewport = document.getElementById('treeViewport');
       let userTookControlOfZoom = false;
+      let focusedCardId = null;   // tarjeta acercada con un toque
+      let savedView = null;       // vista anterior, para volver con Esc
 
       // El zoom mínimo es el MÁS CHICO que deja ver el árbol completo, con estas reglas:
       //  - nunca por encima del ajuste a la pantalla (en el mínimo el árbol siempre se ve completo);
@@ -4031,6 +4046,7 @@
       function zoomAt(newZoom, ex, ey, animate) {
         const z = clampZoom(newZoom);
         if (z === zoomLevel) return;
+        clearFocusVisual();
         const s = z / zoomLevel;
         panX = ex - (ex - panX) * s;
         panY = ey - (ey - panY) * s;
@@ -4094,6 +4110,7 @@
         panY = targetDy - z * (bcy - 450);
       }
       function fitTreeToContainer() {
+        clearFocusVisual();
         const f = refreshZoomMin();
         lastFitZoom = f.z;
         zoomLevel = f.z;
@@ -4115,6 +4132,7 @@
         if (e.target.closest('.glass-card')) userTookControlOfZoom = true;
       }, true);
       window.autoFitIfRequested = function () {
+        if (window.reapplyCardFocus) window.reapplyCardFocus();
         if (!userTookControlOfZoom && Date.now() < autoFitUntil) fitTreeToContainer();
         else enforceView();
       };
@@ -4134,13 +4152,89 @@
         });
         zoomSlider.addEventListener('mousedown', (e) => e.stopPropagation());
       }
+      // ---------- Acercar al tocar una tarjeta ----------
+      const focusBackBtn = document.getElementById('focusBackBtn');
+      function applyFocusVisual() {
+        const box = document.getElementById('treeCardsContainer');
+        if (!box) return;
+        box.classList.toggle('tree-has-focus', !!focusedCardId);
+        box.querySelectorAll('.card-focused').forEach(el => el.classList.remove('card-focused'));
+        if (focusedCardId) {
+          const el = box.querySelector(`[data-id="${focusedCardId}"]`);
+          if (el) el.classList.add('card-focused');
+        }
+        if (focusBackBtn) focusBackBtn.classList.toggle('hidden', !focusedCardId);
+      }
+      // Quita el atenuado y olvida la vista anterior (la vista actual se conserva)
+      function clearFocusVisual() {
+        if (!focusedCardId && !savedView) return;
+        focusedCardId = null;
+        savedView = null;
+        applyFocusVisual();
+      }
+      function focusCard(cardEl) {
+        const id = cardEl.getAttribute('data-id');
+        if (!id) return;
+        if (focusedCardId === id) return;
+        if (!focusedCardId) {
+          savedView = { zoom: zoomLevel, panX, panY, userTook: userTookControlOfZoom };
+        }
+        focusedCardId = id;
+        userTookControlOfZoom = true;
+        const rect = canvasContainer.getBoundingClientRect();
+        const w = cardEl.offsetWidth, h = cardEl.offsetHeight;
+        const cx = cardEl.offsetLeft + w / 2, cy = cardEl.offsetTop + h / 2;
+        // zoom cómodo para leer (≈130 %), sin que la tarjeta pase del 75 % del área visible
+        const comfy = Math.min(1.3, (rect.width * 0.75) / w, (rect.height * 0.75) / h);
+        zoomLevel = clampZoom(Math.max(zoomLevel, comfy));
+        panX = -zoomLevel * (cx - 700);
+        panY = -zoomLevel * (cy - 450);
+        updateTransform(false);
+        applyFocusVisual();
+      }
+      function exitFocus() {
+        if (!focusedCardId || !savedView) { clearFocusVisual(); return; }
+        const v = savedView;
+        focusedCardId = null;
+        savedView = null;
+        zoomLevel = clampZoom(v.zoom);
+        panX = v.panX; panY = v.panY;
+        userTookControlOfZoom = v.userTook;
+        applyFocusVisual();
+        updateTransform(false);
+      }
+      window.reapplyCardFocus = applyFocusVisual; // tras redibujar las tarjetas
+      if (focusBackBtn) focusBackBtn.addEventListener('click', (e) => { e.stopPropagation(); exitFocus(); });
+
+      // Distinguir un toque de un arrastre: se acerca solo si el puntero casi no se movió
+      let tapStart = null;
+      canvasContainer.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) { tapStart = null; return; }
+        const onUi = e.target.closest && e.target.closest('#zoomControlsPanel, #focusBackBtn, #dragHelpNotice');
+        if (onUi) { tapStart = null; return; }
+        const card = e.target.closest && e.target.closest('#treeCardsContainer .glass-card, #treeCardsContainer .glass-card-light');
+        const interactive = e.target.closest && e.target.closest('button, a, input, textarea, select, label');
+        tapStart = { x: e.clientX, y: e.clientY, card: (card && !interactive) ? card : null, bg: !card };
+      }, true);
+      canvasContainer.addEventListener('pointerup', (e) => {
+        const t = tapStart; tapStart = null;
+        if (!t) return;
+        const moved = Math.hypot(e.clientX - t.x, e.clientY - t.y);
+        if (t.card && moved < 6) { focusCard(t.card); }
+        else if (t.bg && focusedCardId) {
+          if (moved < 6) exitFocus(); else clearFocusVisual(); // arrastró el lienzo: conserva la vista
+        }
+      }, true);
+      canvasContainer.addEventListener('pointercancel', () => { tapStart = null; }, true);
+
       // Atajos de teclado: + acerca, − aleja, 0 ajusta todo el árbol
       document.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey || e.altKey) return;
         const t = e.target;
         if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
         if (['ideaModal', 'configModal', 'confirmDeleteModal'].some(id => { const m = document.getElementById(id); return m && !m.classList.contains('hidden'); })) return;
-        if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomFromCenter(1.25); }
+        if (e.key === 'Escape' && focusedCardId) { e.preventDefault(); exitFocus(); }
+        else if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomFromCenter(1.25); }
         else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomFromCenter(1 / 1.25); }
         else if (e.key === '0') { e.preventDefault(); userTookControlOfZoom = true; fitTreeToContainer(); }
       });
