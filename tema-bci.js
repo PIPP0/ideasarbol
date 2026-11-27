@@ -51,6 +51,8 @@
   window.DS_FORCE_LIGHT = LIGHT; // en modo claro, lienzo y tarjetas usan la variante clara
   var root = document.documentElement;
   root.classList.add('theme-bci', 'estilo-' + E.id, LIGHT ? 'ds-claro' : 'ds-oscuro');
+  // Interruptor de aves: si estaba apagado, se aplica desde el primer instante (sin ver las aves un momento)
+  try { if (localStorage.getItem('ideasarbol_aves') === '0') root.classList.add('aves-off'); } catch (e) {}
 
   // ---------- Resolución de referencias "{colors.palette.green.700}" ----------
   function get(path) {
@@ -293,6 +295,13 @@
   add(H + 'select', 'appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:pointer;' +
     'background-image:url("data:image/svg+xml;utf8,' + encodeURIComponent(chev) + '") !important;background-repeat:no-repeat !important;background-position:right 10px center !important;background-size:14px !important;padding-right:32px !important');
   add(H + 'select option', 'color:' + g[900] + ';background:#fff');
+
+  // ---------- Interruptor de aves ----------
+  add(H + '.ds-switch', 'background:' + (LIGHT ? g[300] : bl[700]));
+  add(H + '.ds-switch[aria-checked="true"]', 'background:' + gr[700]);
+  add(H + '.ds-switch-knob', 'background:#fff');
+  add(H + '.bird-ico', 'color:' + gr[700]);
+  add('html.aves-off.theme-bci .bird-ico', 'color:' + (LIGHT ? g[400] : bl[300]));
 
   // ---------- Deslizador de zoom ----------
   add(H + '.zoom-slider::-webkit-slider-runnable-track', 'background:' + (LIGHT ? g[200] : bl[700]));

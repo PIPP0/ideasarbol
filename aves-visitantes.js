@@ -10,6 +10,32 @@
  *  - nunca se posan donde otra tarjeta taparía al ave.
  * Respetan «reducir movimiento» del sistema operativo (en ese caso no aparecen).
  */
+/* ---- Interruptor de aves (siempre disponible, aunque el sistema pida reducir movimiento) ---- */
+(function () {
+  'use strict';
+  var KEY = 'ideasarbol_aves', root = document.documentElement;
+  try { if (localStorage.getItem(KEY) === '0') root.classList.add('aves-off'); } catch (e) {}
+  var isOff = function () { return root.classList.contains('aves-off'); };
+  function sync() {
+    var b = document.getElementById('birdsToggle');
+    if (b) b.setAttribute('aria-checked', isOff() ? 'false' : 'true');
+  }
+  function set(on) {
+    root.classList.toggle('aves-off', !on);
+    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    sync();
+    if (!on && window.dsAvesApagar) window.dsAvesApagar(); // corta de inmediato las visitas en curso
+    if (typeof showToast === 'function') showToast(on ? 'Aves activadas' : 'Aves apagadas');
+  }
+  function bind() {
+    var b = document.getElementById('birdsToggle');
+    if (!b) return;
+    sync();
+    b.addEventListener('click', function (e) { e.stopPropagation(); set(isOff()); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+})();
+
 (function () {
   'use strict';
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -228,7 +254,10 @@
       return Math.abs(el.offsetLeft - spot.card.l) > 2 || Math.abs(el.offsetTop - spot.card.t) > 2;
     }
 
+    var off = function () { return document.documentElement.classList.contains('aves-off'); };
+
     function visit(v) {
+      if (off()) return Promise.resolve(false);
       var spot = pickSpot();
       if (!spot) return Promise.resolve(false);
       var id = spot.card.id;
@@ -268,7 +297,7 @@
           v.spotId = null;
           stopWings(v);
           v.root.style.opacity = '0';
-          console.warn('[Aves visitantes]', e);
+          if (!(e && e.name === 'AbortError')) console.warn('[Aves visitantes]', e);
           return false;
         });
     }
@@ -288,6 +317,7 @@
     function perch(v, spot) {
       var end = Date.now() + rand(6500, 14000);
       var step = function () {
+        if (off()) v.spooked = true;
         if (v.spooked || Date.now() > end) return Promise.resolve();
         return race(v, sleep(rand(600, 1700))).then(function () {
           if (v.spooked || Date.now() > end) return null;
@@ -302,6 +332,7 @@
     }
 
     function leave(v, spot) {
+      if (off()) { stopWings(v); v.root.style.opacity = '0'; return Promise.resolve(); }
       var ex = Math.random() < 0.5 ? 1 : -1;
       var turn = ex !== v.sx ? gestureTurn(v, ex) : Promise.resolve();
       return turn.then(function () {
@@ -336,7 +367,7 @@
       (function loop(first) {
         var wait = first ? (i === 0 ? rand(6000, 11000) : rand(16000, 26000)) : rand(16000, 34000);
         setTimeout(function () {
-          if (document.hidden || !cardRects().length) { loop(false); return; }
+          if (document.hidden || off() || !cardRects().length) { loop(false); return; }
           visit(v).then(function () { loop(false); });
         }, wait);
       })(true);
@@ -349,6 +380,17 @@
       var id = c.getAttribute('data-id');
       visitors.forEach(function (v) { if (v.spotId === id) v.spooked = true; });
     }, true);
+
+    // Apagado inmediato desde el interruptor: corta vuelos en curso y esconde a las visitantes
+    window.dsAvesApagar = function () {
+      visitors.forEach(function (v) {
+        v.spooked = true;
+        try { v.root.getAnimations().forEach(function (an) { an.cancel(); }); } catch (e) {}
+        stopWings(v);
+        v.root.style.opacity = '0';
+        if (v.stopWatching) v.stopWatching();
+      });
+    };
 
     // para pruebas manuales: window.dsAvesVisitar(0) hace llegar un ave de inmediato
     window.dsAvesVisitar = function (i) { return visit(visitors[i || 0]); };
