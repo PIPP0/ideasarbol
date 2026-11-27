@@ -1,0 +1,283 @@
+/**
+ * Árbol de Ideas | Plataforma de Innovación Bci — versión Google Apps Script
+ *
+ * Todo vive dentro de tu cuenta de Google del trabajo:
+ *   - Los datos en Drive (carpeta «Árbol de Ideas Bci (datos)»): estado.json, usuarios.json y Respaldos/.
+ *   - El acceso lo controla el despliegue (por defecto: solo personas de tu organización).
+ *   - Respaldos automáticos: uno diario y otro antes de cualquier baja de ideas o árboles.
+ *
+ * El navegador llama a las funciones api* mediante google.script.run (ver Index.html).
+ * La unión de cambios entre varias personas está en Merge.gs (con pruebas en pruebas/).
+ */
+
+var NOMBRE_CARPETA = 'Árbol de Ideas Bci (datos)';
+var NOMBRE_RESPALDOS = 'Respaldos';
+var MAX_RESPALDOS = 60;
+var TITULO = 'Árbol de Ideas | Plataforma de Innovación Bci';
+
+// ====================== Entrada web ======================
+
+function doGet(e) {
+  asegurarInstalacion_();
+  var email = emailActual_();
+  var t = HtmlService.createTemplateFromFile('Index');
+  // Se entrega a la página: parámetros de la URL (?tree=, ?estilo=), la URL base de la app y las preferencias de la persona
+  t.boot = JSON.stringify({
+    params: (e && e.parameter) || {},
+    baseUrl: ScriptApp.getService().getUrl(),
+    email: email,
+    prefs: leerUsuario_(email).prefs || {}
+  }).replace(/</g, '\\u003c');
+  return t.evaluate()
+    .setTitle(TITULO)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
+}
+
+/** Permite incluir archivos HTML dentro de Index.html con <?!= include('Nombre') ?> */
+function include(nombre) {
+  return HtmlService.createHtmlOutputFromFile(nombre).getContent();
+}
+
+function emailActual_() {
+  try { return Session.getActiveUser().getEmail() || 'anonimo'; } catch (e) { return 'anonimo'; }
+}
+
+// ====================== API para el navegador ======================
+
+/** Número de versión del estado (consulta barata: se usa cada pocos segundos para detectar cambios). */
+function apiGetVersion() {
+  return Number(PropertiesService.getScriptProperties().getProperty('VERSION') || 0);
+}
+
+/** Estado completo + votos de la persona que consulta. */
+function apiGetState() {
+  asegurarInstalacion_();
+  var estado = leerEstado_();
+  var email = emailActual_();
+  var u = leerUsuario_(email);
+  return {
+    trees: estado.trees,
+    appConfig: estado.appConfig,
+    version: estado.version,
+    actualizado: estado.actualizado || null,
+    actualizadoPor: estado.actualizadoPor || null,
+    userVotes: u.votes || {},
+    prefs: u.prefs || {},
+    email: email
+  };
+}
+
+/**
+ * Guarda cambios. payload = { base: {trees, appConfig}, next: {trees, appConfig} }
+ * Se aplican sobre el estado vigente SOLO los cambios que la persona hizo entre `base` y `next`.
+ * Devuelve el estado resultante (ya con los cambios de otras personas).
+ */
+function apiSaveState(payload) {
+  if (!payload || !payload.next || !Array.isArray(payload.next.trees) || !payload.next.trees.length) {
+    throw new Error('Se rechazó un estado vacío.');
+  }
+  if (!payload.base || !Array.isArray(payload.base.trees)) {
+    throw new Error('Falta el estado base: recarga la página.');
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(25000);
+  try {
+    var cur = leerEstado_();
+    var merged = mergeStates(payload.base, payload.next, cur);
+    if (!merged.trees.length) throw new Error('Se rechazó un resultado sin árboles.');
+
+    var bajas = mergeBajas(cur, merged);
+    if (bajas.ideas >= 2 || bajas.arboles >= 1) crearRespaldo_(cur, 'antes-de-baja-' + bajas.ideas + 'ideas-' + bajas.arboles + 'arboles');
+
+    var sinCambios = JSON.stringify({ t: merged.trees, c: merged.appConfig }) === JSON.stringify({ t: cur.trees, c: cur.appConfig });
+    if (!sinCambios) {
+      merged.version = (cur.version || 0) + 1;
+      merged.actualizado = new Date().toISOString();
+      merged.actualizadoPor = emailActual_();
+      escribirEstado_(merged);
+    } else {
+      merged = cur;
+    }
+    return { ok: true, state: { trees: merged.trees, appConfig: merged.appConfig, version: merged.version } };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Guarda los votos (me gusta / es factible) de la persona que consulta. */
+function apiGuardarVotos(votes) {
+  return actualizarUsuario_(emailActual_(), function (u) { u.votes = votes || {}; });
+}
+
+/** Guarda preferencias de la persona (estilo visual, aves). */
+function apiGuardarPrefs(prefs) {
+  return actualizarUsuario_(emailActual_(), function (u) {
+    u.prefs = u.prefs || {};
+    Object.keys(prefs || {}).forEach(function (k) { u.prefs[k] = prefs[k]; });
+  });
+}
+
+// ====================== Almacenamiento en Drive ======================
+
+function carpeta_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('CARPETA_ID');
+  if (id) { try { return DriveApp.getFolderById(id); } catch (e) { /* se vuelve a crear */ } }
+  var it = DriveApp.getFoldersByName(NOMBRE_CARPETA);
+  var f = it.hasNext() ? it.next() : DriveApp.createFolder(NOMBRE_CARPETA);
+  props.setProperty('CARPETA_ID', f.getId());
+  return f;
+}
+
+function subcarpetaRespaldos_() {
+  var padre = carpeta_();
+  var it = padre.getFoldersByName(NOMBRE_RESPALDOS);
+  return it.hasNext() ? it.next() : padre.createFolder(NOMBRE_RESPALDOS);
+}
+
+function archivo_(clave, nombre, contenidoInicial) {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty(clave);
+  if (id) { try { return DriveApp.getFileById(id); } catch (e) { /* se vuelve a crear */ } }
+  var padre = carpeta_();
+  var it = padre.getFilesByName(nombre);
+  var f = it.hasNext() ? it.next() : padre.createFile(nombre, contenidoInicial, MimeType.PLAIN_TEXT);
+  props.setProperty(clave, f.getId());
+  return f;
+}
+
+function leerJson_(f) {
+  var texto = f.getBlob().getDataAsString('UTF-8');
+  return JSON.parse(texto);
+}
+
+function leerEstado_() {
+  return leerJson_(archivo_('ESTADO_ID', 'estado.json', '{}'));
+}
+
+function escribirEstado_(estado) {
+  archivo_('ESTADO_ID', 'estado.json', '{}').setContent(JSON.stringify(estado));
+  PropertiesService.getScriptProperties().setProperty('VERSION', String(estado.version || 0));
+}
+
+function leerUsuario_(email) {
+  try {
+    var todos = leerJson_(archivo_('USUARIOS_ID', 'usuarios.json', '{}'));
+    return todos[email] || {};
+  } catch (e) { return {}; }
+}
+
+function actualizarUsuario_(email, fn) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var f = archivo_('USUARIOS_ID', 'usuarios.json', '{}');
+    var todos = leerJson_(f);
+    var u = todos[email] || {};
+    fn(u);
+    todos[email] = u;
+    f.setContent(JSON.stringify(todos));
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Crea carpeta y archivos la primera vez, con los datos iniciales (Semilla.gs). */
+function asegurarInstalacion_() {
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('INSTALADO') === '1') return;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (props.getProperty('INSTALADO') === '1') return;
+    carpeta_();
+    subcarpetaRespaldos_();
+    var existente = null;
+    try { existente = leerEstado_(); } catch (e) { existente = null; }
+    if (!existente || !existente.trees || !existente.trees.length) {
+      var estado = { trees: SEMILLA.trees, appConfig: SEMILLA.appConfig, version: 1, actualizado: new Date().toISOString(), actualizadoPor: 'semilla' };
+      escribirEstado_(estado);
+    }
+    archivo_('USUARIOS_ID', 'usuarios.json', '{}');
+    props.setProperty('INSTALADO', '1');
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ====================== Respaldos ======================
+
+function crearRespaldo_(estado, etiqueta) {
+  var tz = Session.getScriptTimeZone();
+  var marca = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd_HH-mm-ss');
+  var nombre = 'estado_' + marca + '_' + String(etiqueta || 'manual').replace(/[^A-Za-z0-9\-_]/g, '') + '.json';
+  subcarpetaRespaldos_().createFile(nombre, JSON.stringify(estado), MimeType.PLAIN_TEXT);
+  limpiarRespaldos_();
+  return nombre;
+}
+
+function limpiarRespaldos_() {
+  var it = subcarpetaRespaldos_().getFiles(), lista = [];
+  while (it.hasNext()) { var f = it.next(); lista.push({ f: f, t: f.getDateCreated().getTime() }); }
+  lista.sort(function (a, b) { return b.t - a.t; });
+  lista.slice(MAX_RESPALDOS).forEach(function (x) { x.f.setTrashed(true); });
+}
+
+/** Lo ejecuta el activador diario. */
+function respaldoDiario() {
+  var estado = leerEstado_();
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('ULTIMO_RESPALDO_VERSION') === String(estado.version)) return; // sin cambios desde el último
+  crearRespaldo_(estado, 'diario');
+  props.setProperty('ULTIMO_RESPALDO_VERSION', String(estado.version));
+}
+
+// ====================== Para ejecutar a mano desde el editor ======================
+
+/** EJECUTAR UNA VEZ al desplegar: autoriza permisos, crea los datos y programa el respaldo diario. */
+function instalar() {
+  asegurarInstalacion_();
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'respaldoDiario') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('respaldoDiario').timeBased().everyDays(1).atHour(3).create();
+  var estado = leerEstado_();
+  Logger.log('Listo. Carpeta de datos: ' + carpeta_().getUrl() + ' — ideas: ' +
+    estado.trees.reduce(function (n, t) { return n + t.ideas.length; }, 0) + ' en ' + estado.trees.length + ' árboles.');
+  Logger.log('URL de la app: ' + ScriptApp.getService().getUrl());
+}
+
+/** Lista los respaldos disponibles (para elegir uno y restaurarlo). */
+function listarRespaldos() {
+  var it = subcarpetaRespaldos_().getFiles(), lista = [];
+  while (it.hasNext()) { var f = it.next(); lista.push({ n: f.getName(), t: f.getDateCreated().getTime() }); }
+  lista.sort(function (a, b) { return b.t - a.t; });
+  lista.forEach(function (x) { Logger.log(x.n); });
+  return lista.map(function (x) { return x.n; });
+}
+
+/**
+ * Restaura un respaldo. Antes crea un respaldo del estado actual, así que es reversible.
+ * Uso: cambia el nombre abajo por uno de los que muestra listarRespaldos() y ejecuta.
+ */
+function restaurarRespaldo() {
+  var NOMBRE = 'PEGA_AQUI_EL_NOMBRE_DEL_ARCHIVO.json';
+  var it = subcarpetaRespaldos_().getFilesByName(NOMBRE);
+  if (!it.hasNext()) throw new Error('No existe el respaldo "' + NOMBRE + '". Usa listarRespaldos().');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var actual = leerEstado_();
+    crearRespaldo_(actual, 'antes-de-restaurar');
+    var r = leerJson_(it.next());
+    r.version = (actual.version || 0) + 1;
+    r.actualizado = new Date().toISOString();
+    r.actualizadoPor = 'restauracion';
+    escribirEstado_(r);
+    Logger.log('Restaurado "' + NOMBRE + '" (versión nueva ' + r.version + ').');
+  } finally {
+    lock.releaseLock();
+  }
+}

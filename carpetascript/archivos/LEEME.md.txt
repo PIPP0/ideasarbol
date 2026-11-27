@@ -1,0 +1,98 @@
+# Árbol de Ideas Bci — versión Google Apps Script (cuenta del trabajo)
+
+Es el mismo sitio (mismo diseño, estilos, aves, zoom, editor de categorías), pero **todo dentro de tu cuenta de
+Google del trabajo**: los datos viven en Drive, el acceso lo controla Google y no usa Firebase.
+
+## Qué cambia respecto del sitio web (pipp0.github.io/ideasarbol)
+
+| | Sitio web | Esta versión |
+|---|---|---|
+| Datos | Firebase (base abierta) | Drive de tu cuenta: carpeta **Árbol de Ideas Bci (datos)** |
+| Quién entra | Cualquiera con el enlace | Solo personas de tu organización (se configura al desplegar) |
+| Cambios en vivo | Instantáneos | Cada ~6 segundos |
+| Dos personas editando a la vez | Último en guardar gana | Se **unen** los cambios (nadie pisa a nadie) |
+| Respaldos | Manuales | Diario + automático antes de cualquier borrado de 2 o más ideas o de un árbol |
+| Votos (me gusta / es factible) | Por navegador | Por persona (por correo) |
+| Estilo visual y aves | Por navegador | Por persona (por correo) |
+| Botón «datos de prueba» | Visible | Oculto (con datos reales no tiene sentido) |
+
+Los datos iniciales son una copia del sitio web al 2026-11-27 (13 ideas en 5 árboles, ya con lo recuperado).
+
+## Desplegar (≈ 10 minutos)
+
+### Requisitos
+- Estar con tu **cuenta de trabajo** en el navegador.
+- Activar la API de Apps Script en tu cuenta: https://script.google.com/home/usersettings → «Google Apps Script API» **Activada**.
+  (Si tu organización lo bloquea, usa el «Método manual» de abajo.)
+- Node.js instalado (ya lo tienes).
+
+### Método con clasp (recomendado)
+En una terminal, dentro de esta carpeta (`ideasarbol-gas`):
+
+```bash
+npx @google/clasp login
+```
+Se abre el navegador: **elige la cuenta del trabajo** y acepta.
+
+```bash
+npx @google/clasp create --type webapp --title "Árbol de Ideas Bci" --rootDir .
+```
+Crea el proyecto y un archivo `.clasp.json`. Luego sube los archivos:
+
+```bash
+npx @google/clasp push --force
+npx @google/clasp open
+```
+(`--force` porque el manifiesto `appsscript.json` de este proyecto reemplaza al que crea clasp.)
+
+### Método manual (si clasp no es posible)
+1. Entra a https://script.google.com → **Nuevo proyecto** y ponle «Árbol de Ideas Bci».
+2. Crea estos archivos con **exactamente** estos nombres y pega el contenido de cada uno:
+   - Script (`+` → Script): `Code`, `Merge`, `Semilla`
+   - HTML (`+` → HTML): `Index`, `Tema`, `Aves`, `Diseno`
+3. Configuración del proyecto (⚙) → marca **«Mostrar el archivo de manifiesto appsscript.json»** y pega el contenido de `appsscript.json`.
+
+### Pasos finales (los dos métodos)
+1. En el editor, elige la función **`instalar`** y pulsa **Ejecutar**. Te pedirá permisos (Drive y activadores):
+   «Revisar permisos» → tu cuenta → «Avanzado» → «Ir a Árbol de Ideas Bci» → «Permitir».
+   Esto crea la carpeta de datos en tu Drive, carga las 13 ideas y programa el respaldo diario.
+2. **Implementar → Nueva implementación → Aplicación web**:
+   - *Ejecutar como*: **Yo**
+   - *Quién tiene acceso*: **Cualquier persona de [tu organización]**
+3. Copia la URL que termina en `/exec` y compártela con tu equipo. Esa es la dirección del sitio.
+
+La primera vez que alguien entra tarda unos segundos más. Si algo falla, abre **Ejecuciones** en el editor para ver el error.
+
+## Respaldos y recuperación
+- Carpeta `Árbol de Ideas Bci (datos)/Respaldos` en tu Drive: uno por día (si hubo cambios) y otro justo antes de cualquier
+  baja de 2 o más ideas o de un árbol. Se conservan los últimos 60.
+- Restaurar: en el editor ejecuta `listarRespaldos`, copia el nombre del que quieras, pégalo en `restaurarRespaldo`
+  (variable `NOMBRE`) y ejecútala. Antes de restaurar guarda un respaldo del estado actual, así que es reversible.
+- Además, Drive guarda el historial de versiones de `estado.json` (clic derecho → Administrar versiones).
+
+## Seguridad: lo que conviene saber
+- Cualquier persona con acceso a la URL puede **leer y editar todo** (igual que antes, pero ahora solo dentro de tu organización).
+  Si necesitas roles (solo lectura / edición) se puede agregar con una lista de correos.
+- El sitio carga Tailwind, FontAwesome y las fuentes desde internet (CDN). Si la red de la empresa bloquea alguno,
+  el diseño se vería distinto; la alternativa es incluir esos estilos dentro de la página.
+- No subas `Semilla.gs` ni esta carpeta a repositorios públicos: contienen el contenido de las ideas.
+
+## Actualizar cuando el sitio web mejore
+```bash
+python3 portar.py          # regenera Index/Tema/Aves/Diseno desde ../ideasarbol y revisa que no falte ninguna función
+npx @google/clasp push --force
+```
+Luego **Implementar → Administrar implementaciones → editar → Versión nueva** (la URL no cambia).
+
+## Probar sin Google (simulador local)
+```bash
+python3 pruebas/construir_local.py
+cd pruebas/local && python3 -m http.server 8124
+```
+Abre dos pestañas: `http://localhost:8124/?yo=ana@empresa.cl` y `http://localhost:8124/?yo=beto@empresa.cl` para
+simular a dos personas editando a la vez. Las pruebas de la unión de cambios: `node pruebas/merge.test.js`.
+
+## Qué hay en la carpeta
+- `Code.gs` servidor (datos en Drive, respaldos, API) · `Merge.gs` unión de cambios · `Semilla.gs` datos iniciales
+- `Index.html` la aplicación · `Tema.html` / `Aves.html` / `Diseno.html` estilos y aves
+- `portar.py` genera los HTML desde el sitio web · `pruebas/` simulador y pruebas

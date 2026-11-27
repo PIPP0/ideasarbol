@@ -1,0 +1,113 @@
+/**
+ * Unión de cambios entre varias personas (merge de 3 vías).
+ *
+ * Cada cliente guarda enviando:
+ *   base  = el estado de la nube que tenía la última vez que sincronizó
+ *   next  = su estado actual
+ * y el servidor tiene:
+ *   cur   = el estado vigente (puede incluir cambios de otras personas desde esa base)
+ *
+ * Se aplica sobre `cur` SOLO lo que el cliente cambió entre `base` y `next`, ítem por ítem:
+ *   - ideas, árboles, categorías y comentarios agregados o borrados por id;
+ *   - campos modificados (título, posición, estado, etc.) campo por campo;
+ *   - me gusta / es factible: se suman como diferencia (dos personas votando a la vez suman ambos).
+ * Así, nadie pisa el trabajo de otra persona y un cliente con datos viejos no puede
+ * sobrescribir lo que otros guardaron.
+ *
+ * Este archivo es JavaScript puro (sin APIs de Google): también corre en Node para las pruebas.
+ */
+
+function mergeJsonEq_(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+function mergeClone_(o) { return o === undefined ? undefined : JSON.parse(JSON.stringify(o)); }
+
+function mergeIndex_(arr) {
+  var m = {};
+  (arr || []).forEach(function (x) { if (x && x.id !== undefined) m[x.id] = x; });
+  return m;
+}
+
+/** Une listas de objetos con `id` (ideas, comentarios, árboles). */
+function mergeById_(baseArr, nextArr, curArr, mergeItem) {
+  var b = mergeIndex_(baseArr), n = mergeIndex_(nextArr), c = mergeIndex_(curArr);
+  var out = [], seen = {};
+  (curArr || []).forEach(function (ci) {
+    var id = ci.id, bi = b[id], ni = n[id];
+    if (bi && !ni) return;                                  // el cliente lo borró
+    if (ni) out.push(mergeItem(bi, ni, ci));                // el cliente lo conoce: une campos
+    else out.push(ci);                                      // el cliente no lo tocó
+    seen[id] = true;
+  });
+  (nextArr || []).forEach(function (ni) {
+    if (!seen[ni.id] && !b[ni.id]) { out.push(mergeClone_(ni)); seen[ni.id] = true; } // agregado por el cliente
+  });
+  return out;
+}
+
+/** Une dos objetos campo por campo: aplica sobre `c` solo lo que cambió de `b` a `n`. */
+function mergeObj_(b, n, c, specials) {
+  specials = specials || {};
+  b = b || {}; n = n || {}; c = c || {};
+  var out = mergeClone_(c), keys = {}, k;
+  Object.keys(n).forEach(function (x) { keys[x] = true; });
+  Object.keys(b).forEach(function (x) { keys[x] = true; });
+  for (k in keys) {
+    var bv = b[k], nv = n[k];
+    if (mergeJsonEq_(nv, bv)) continue;                     // el cliente no cambió este campo
+    if (nv === undefined) { delete out[k]; continue; }      // el cliente quitó el campo
+    out[k] = specials[k] ? specials[k](bv, nv, c[k]) : mergeClone_(nv);
+  }
+  return out;
+}
+
+var MERGE_COUNTERS_ = { hearts: true, stars: true };
+
+function mergeComment_(b, n, c) { return mergeClone_(n); }
+
+function mergeIdea_(b, n, c) {
+  var sp = {
+    comments: function (bv, nv, cv) { return mergeById_(bv || [], nv || [], cv || [], mergeComment_); }
+  };
+  var out = mergeObj_(b, n, c, sp);
+  Object.keys(MERGE_COUNTERS_).forEach(function (f) {      // contadores: se suma la diferencia
+    var bv = (b && b[f]) || 0, nv = n[f] || 0, cv = (c && c[f]) || 0;
+    if (nv !== bv) out[f] = Math.max(0, cv + (nv - bv));
+  });
+  return out;
+}
+
+function mergeCategories_(bMap, nMap, cMap) {
+  var toArr = function (m) { return Object.keys(m || {}).map(function (k) { var o = mergeClone_(m[k]); if (o.id === undefined) o.id = k; return o; }); };
+  var arr = mergeById_(toArr(bMap), toArr(nMap), toArr(cMap), function (b, n, c) { return mergeObj_(b, n, c, {}); });
+  var out = {};
+  arr.forEach(function (x) { out[x.id] = x; });
+  return out;
+}
+
+function mergeTree_(b, n, c) {
+  return mergeObj_(b, n, c, {
+    categories: mergeCategories_,
+    ideas: function (bv, nv, cv) { return mergeById_(bv || [], nv || [], cv || [], mergeIdea_); }
+  });
+}
+
+/** Une el estado completo. cur = vigente en el servidor; devuelve el nuevo estado. */
+function mergeStates(base, next, cur) {
+  var out = mergeClone_(cur) || {};
+  out.trees = mergeById_((base && base.trees) || [], (next && next.trees) || [], (cur && cur.trees) || [], mergeTree_);
+  out.appConfig = mergeObj_((base && base.appConfig) || {}, (next && next.appConfig) || {}, (cur && cur.appConfig) || {}, {});
+  return out;
+}
+
+/** Cuenta ideas y árboles que desaparecieron al pasar de `antes` a `despues` (para respaldos). */
+function mergeBajas(antes, despues) {
+  var ids = function (s) { var r = {}; ((s && s.trees) || []).forEach(function (t) { (t.ideas || []).forEach(function (i) { r[i.id] = true; }); }); return r; };
+  var a = ids(antes), d = ids(despues), ideas = 0, k;
+  for (k in a) if (!d[k]) ideas++;
+  var ta = mergeIndex_((antes && antes.trees) || []), td = mergeIndex_((despues && despues.trees) || []), arboles = 0;
+  for (k in ta) if (!td[k]) arboles++;
+  return { ideas: ideas, arboles: arboles };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { mergeStates: mergeStates, mergeBajas: mergeBajas };
+}

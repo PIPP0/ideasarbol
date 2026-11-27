@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Archivos para Apps Script</title>
+  <style>
+    :root {
+      --verde: #248910; --verde-osc: #185C0A; --verde-claro: #EDFAEB;
+      --azul: #0057C2; --texto: #1F292E; --suave: #587184; --linea: #E0E6EB; --fondo: #F0F3F5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--fondo); color: var(--texto); font: 16px/1.5 "Overpass", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; }
+    .sub { color: var(--suave); margin: 0 0 24px; }
+    .aviso { background: #FFF4CC; border: 1px solid #FFE999; border-radius: 12px; padding: 12px 16px; margin: 0 0 24px; font-size: 15px; }
+    ol.pasos { padding-left: 20px; margin: 0 0 28px; }
+    ol.pasos li { margin: 6px 0; }
+    code { background: #E0E6EB; padding: 1px 6px; border-radius: 6px; font-size: .92em; }
+    h2 { font-size: 20px; margin: 28px 0 10px; }
+    .archivo { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; background: #fff; border: 1px solid var(--linea); border-radius: 14px; padding: 14px 16px; margin: 10px 0; }
+    .num { width: 34px; height: 34px; border-radius: 50%; background: var(--verde-claro); color: var(--verde-osc); display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .nombre { font-weight: 700; }
+    .nombre small { font-weight: 400; color: var(--suave); }
+    .donde { color: var(--suave); font-size: 14px; }
+    .botones { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    button, a.btn { font: inherit; font-weight: 600; font-size: 14px; border-radius: 9999px; padding: 8px 16px; cursor: pointer; text-decoration: none; border: 2px solid var(--verde); }
+    button.copiar { background: var(--verde); color: #fff; }
+    button.copiar:hover { background: #36AD1F; border-color: #36AD1F; }
+    button.copiar.ok { background: var(--verde-osc); border-color: var(--verde-osc); }
+    button.copiar.error { background: #E91619; border-color: #E91619; }
+    a.btn { background: #fff; color: var(--verde); display: inline-block; }
+    a.btn:hover { background: var(--verde-claro); }
+    .zip { background: #fff; border: 1px dashed #A3B5C2; border-radius: 14px; padding: 14px 16px; margin-top: 20px; }
+    footer { color: var(--suave); font-size: 14px; margin-top: 28px; }
+    @media (max-width: 620px) { .archivo { grid-template-columns: 34px 1fr; } .botones { grid-column: 1 / -1; justify-content: flex-start; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Árbol de Ideas Bci · archivos para Apps Script</h1>
+  <p class="sub">Los 8 archivos, en el orden en que conviene crearlos. Cada botón <b>Copiar</b> pone el contenido en el portapapeles.</p>
+
+  <div class="aviso"><b>Esta página es pública.</b> <code>Semilla.gs</code> incluye el contenido de tus ideas. Cuando termines de instalar en Apps Script, pide que se elimine esta carpeta.</div>
+
+  <ol class="pasos">
+    <li>En <b>script.google.com</b>, con tu cuenta del trabajo, abre tu proyecto.</li>
+    <li>Para cada fila de abajo: pulsa <b>+</b> → <b>Script</b> o <b>HTML</b> (según se indica) y escribe el nombre <b>exactamente</b> como aparece, sin extensión.</li>
+    <li>Pulsa <b>Copiar</b> aquí, borra lo que trae el archivo en Apps Script y pega.</li>
+    <li>El manifiesto (archivo 1) va en ⚙ <b>Configuración del proyecto</b> → «Mostrar el archivo de manifiesto <code>appsscript.json</code>».</li>
+    <li>Al terminar: ejecuta la función <code>instalar</code> y luego <b>Implementar → Nueva implementación → Aplicación web</b> (Ejecutar como: <i>Yo</i> · Acceso: <i>personas de mi organización</i>).</li>
+  </ol>
+
+  <h2>Manifiesto</h2>
+  <div id="lista-manifiesto"></div>
+  <h2>Servidor (Script)</h2>
+  <div id="lista-script"></div>
+  <h2>Página (HTML)</h2>
+  <div id="lista-html"></div>
+
+  <div class="zip">
+    <b>Todo junto:</b> <a class="btn" href="ideasarbol-apps-script.zip">Descargar .zip</a>
+    <a class="btn" href="archivos/LEEME.md.txt" target="_blank" rel="noopener">Guía completa</a>
+    <div class="donde" style="margin-top:6px">Por si prefieres llevar los archivos y subirlos con <code>clasp</code>.</div>
+  </div>
+
+  <footer>Si tras pegar todo la página queda en blanco o sin diseño, revisa que los 8 nombres estén exactos (mayúsculas incluidas).</footer>
+</main>
+
+<script>
+  var ARCHIVOS = [
+    { n: 1, grupo: 'manifiesto', archivo: 'appsscript.json', crear: 'Ya existe: se edita en ⚙ Configuración del proyecto → Mostrar manifiesto', nombre: 'appsscript.json' },
+    { n: 2, grupo: 'script', archivo: 'Code.gs', crear: '+ → Script · nombre: Code', nombre: 'Code', desc: 'Servidor: guarda en Drive, respaldos y acceso' },
+    { n: 3, grupo: 'script', archivo: 'Merge.gs', crear: '+ → Script · nombre: Merge', nombre: 'Merge', desc: 'Une los cambios de varias personas' },
+    { n: 4, grupo: 'script', archivo: 'Semilla.gs', crear: '+ → Script · nombre: Semilla', nombre: 'Semilla', desc: 'Tus 13 ideas iniciales' },
+    { n: 5, grupo: 'html', archivo: 'Index.html', crear: '+ → HTML · nombre: Index', nombre: 'Index', desc: 'La página completa (archivo grande)' },
+    { n: 6, grupo: 'html', archivo: 'Tema.html', crear: '+ → HTML · nombre: Tema', nombre: 'Tema', desc: 'Colores, estilos visuales y aves' },
+    { n: 7, grupo: 'html', archivo: 'Aves.html', crear: '+ → HTML · nombre: Aves', nombre: 'Aves', desc: 'Aves visitantes e interruptor' },
+    { n: 8, grupo: 'html', archivo: 'Diseno.html', crear: '+ → HTML · nombre: Diseno', nombre: 'Diseno', desc: 'Sistema de diseño Bci' }
+  ];
+
+  function fila(a) {
+    var d = document.createElement('div');
+    d.className = 'archivo';
+    d.innerHTML = '<div class="num">' + a.n + '</div>' +
+      '<div><div class="nombre">' + a.nombre + ' <small>' + (a.desc || '') + '</small></div>' +
+      '<div class="donde">' + a.crear + ' · <span class="kb">…</span></div></div>' +
+      '<div class="botones"><button type="button" class="copiar">Copiar</button>' +
+      '<a class="btn" href="archivos/' + a.archivo + '.txt" download="' + a.archivo + '">Descargar</a></div>';
+    var btn = d.querySelector('.copiar');
+    btn.addEventListener('click', function () { copiar(a, btn); });
+    document.getElementById('lista-' + a.grupo).appendChild(d);
+    fetch('archivos/' + a.archivo + '.txt').then(function (r) { return r.text(); }).then(function (t) {
+      d.querySelector('.kb').textContent = Math.max(1, Math.round(t.length / 1024)) + ' KB';
+    }).catch(function () {});
+  }
+
+  function copiarTexto(t) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+    return new Promise(function (res, rej) {
+      var ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy') ? res() : rej(new Error('copy')); } catch (e) { rej(e); }
+      document.body.removeChild(ta);
+    });
+  }
+
+  function copiar(a, btn) {
+    btn.textContent = 'Copiando…';
+    fetch('archivos/' + a.archivo + '.txt').then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(copiarTexto)
+      .then(function () {
+        btn.textContent = '✓ Copiado'; btn.className = 'copiar ok';
+        setTimeout(function () { btn.textContent = 'Copiar'; btn.className = 'copiar'; }, 2500);
+      })
+      .catch(function () {
+        btn.textContent = 'No se pudo: usa Descargar'; btn.className = 'copiar error';
+        setTimeout(function () { btn.textContent = 'Copiar'; btn.className = 'copiar'; }, 3500);
+      });
+  }
+
+  ARCHIVOS.forEach(fila);
+</script>
+</body>
+</html>

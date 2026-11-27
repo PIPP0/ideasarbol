@@ -1,0 +1,565 @@
+/**
+ * Datos iniciales: copia del estado del sitio anterior (13 ideas en 5 árboles) al 2026-11-27.
+ * Solo se usan la primera vez que se abre la app, para crear estado.json en Drive.
+ * NO contiene secretos, pero sí el contenido de las ideas: no subir este archivo a repositorios públicos.
+ */
+var SEMILLA = {
+ "trees": [
+  {
+   "useCustomCategories": true,
+   "id": "tree-bci-main",
+   "categories": {
+    "bank": {
+     "name": "Mejora en el Banco",
+     "desc": "Optimización de procesos internos, automatización y eficiencia.",
+     "bgIcon": "bg-purple-500/20 text-purple-400",
+     "glowColor": "rgba(139, 92, 246, 0.35)",
+     "colorHex": "#8b5cf6",
+     "badgeClass": "bg-purple-500/10 text-purple-400 border-purple-500/20",
+     "icon": "fa-chart-line",
+     "borderClass": "border-l-purple-500",
+     "id": "bank"
+    },
+    "spontaneous": {
+     "glowColor": "rgba(16, 185, 129, 0.35)",
+     "icon": "fa-lightbulb",
+     "badgeClass": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+     "bgIcon": "bg-emerald-500/20 text-emerald-400",
+     "borderClass": "border-l-emerald-500",
+     "id": "spontaneous",
+     "desc": "Propuestas creativas u oportunidades emergentes sin restricciones.",
+     "name": "Iniciativa Espontánea",
+     "colorHex": "#10b981"
+    },
+    "metrics": {
+     "icon": "fa-chart-line",
+     "borderClass": "border-l-blue-500",
+     "glowColor": "rgba(59, 130, 246, 0.35)",
+     "badgeClass": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+     "desc": "Ideas sustentadas en datos, KPIs de conversión o uso de canales.",
+     "bgIcon": "bg-blue-500/20 text-blue-400",
+     "id": "metrics",
+     "name": "Basadas en Métricas",
+     "colorHex": "#3b82f6"
+    },
+    "pain": {
+     "icon": "fa-gear",
+     "bgIcon": "bg-rose-500/20 text-rose-400",
+     "borderClass": "border-l-rose-500",
+     "glowColor": "rgba(244, 63, 94, 0.35)",
+     "desc": "Puntos de fricción actuales del cliente o colaboradores.",
+     "colorHex": "#f43f5e",
+     "id": "pain",
+     "badgeClass": "bg-rose-500/10 text-rose-400 border-rose-500/20",
+     "name": "Dolor de Experiencia"
+    }
+   },
+   "ideas": [
+    {
+     "nodeId": "left-lower",
+     "dept": "Canales Digitales",
+     "description": "La métrica muestra un 32% de caída en el paso 3. Se propone validación facial pasiva de un solo toque.",
+     "category": "metrics",
+     "title": "Reducir abandono en enrolamiento Biométrico",
+     "author": "Carlos R. (Data Analytics)",
+     "effort": "medio",
+     "impact": "alto",
+     "comments": [
+      {
+       "createdAt": "2026-08-26T17:09:11.976Z",
+       "id": "c-1",
+       "author": "Marina S. (Negocio)",
+       "text": "¿Tenemos el dato de cuántos usuarios se pierden exactamente en el paso 3?"
+      }
+     ],
+     "stars": 19,
+     "anchorCorner": "top-right",
+     "businessArea": "Onboarding Digital",
+     "owner": "Equipo Canales Digitales",
+     "hearts": 28,
+     "stackIndex": 0,
+     "status": "evaluacion",
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "id": "demo-1"
+    },
+    {
+     "category": "spontaneous",
+     "stars": 32,
+     "status": "desarrollo",
+     "anchorCorner": "bottom-left",
+     "hearts": 45,
+     "comments": [],
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "title": "Modo Ahorro Automático \"Redondeo Inteligente\"",
+     "impact": "alto",
+     "id": "demo-2",
+     "dept": "Productos",
+     "owner": "Squad Ahorro e Inversión",
+     "businessArea": "Productos de Ahorro",
+     "author": "Sofía M. (Innovación)",
+     "effort": "medio",
+     "description": "Redondear cada compra con tarjeta de débito e invertir la diferencia en fondo mutuo de bajo riesgo.",
+     "nodeId": "left-top",
+     "stackIndex": 0
+    },
+    {
+     "nodeId": "right-lower",
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "description": "Los clientes empresa deben ir presencialmente para poderes legales. Proponemos firma biométrica avanzada.",
+     "dept": "Banca Empresa",
+     "author": "Felipe T. (Riesgo)",
+     "comments": [
+      {
+       "author": "Ricardo O. (Legal)",
+       "createdAt": "2026-08-26T17:09:11.977Z",
+       "id": "c-2",
+       "text": "Requiere validar con circular normativa vigente antes de avanzar."
+      }
+     ],
+     "effort": "alto",
+     "title": "Simplificar firma digital para pymes",
+     "stars": 24,
+     "impact": "medio",
+     "businessArea": "Banca Empresa",
+     "category": "pain",
+     "owner": "Legal & Riesgo",
+     "anchorCorner": "bottom-right",
+     "stackIndex": 0,
+     "hearts": 39,
+     "status": "evaluacion",
+     "id": "demo-3"
+    },
+    {
+     "category": "bank",
+     "stackIndex": 1,
+     "impact": "alto",
+     "anchorCorner": "bottom-left",
+     "author": "Andrea P. (Operaciones)",
+     "comments": [],
+     "effort": "bajo",
+     "owner": "",
+     "nodeId": "center-right",
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "dept": "Atención al Cliente",
+     "stars": 41,
+     "status": "nueva",
+     "businessArea": "Atención al Cliente",
+     "hearts": 52,
+     "description": "Clasificación previa automatizada de tickets de consulta previa para acelerar respuesta en menos de 2 horas.",
+     "title": "Automatización con IA para reclamos normativos",
+     "id": "demo-4"
+    },
+    {
+     "category": "spontaneous",
+     "status": "nueva",
+     "createdAt": "2026-09-14T17:19:04.188Z",
+     "owner": "",
+     "hearts": 1,
+     "comments": [],
+     "id": "idea-1789406344188",
+     "businessArea": "",
+     "stars": 0,
+     "anchorCorner": "bottom-left",
+     "dept": "Banco Bci",
+     "impact": "medio",
+     "description": "El cliente sube o baja el cupo de su tarjeta virtual al instante desde la app, por compra puntual o por periodo, sin llamar al banco. (Ejemplo real de la industria: Nubank (Brasil). Evaluar cómo adaptarlo a nuestra app/web.)",
+     "author": "Colaborador Anónimo",
+     "effort": "medio",
+     "nodeId": "left-mid",
+     "title": "Límite de tarjeta virtual ajustable en tiempo real",
+     "stackIndex": 0
+    },
+    {
+     "anchorCorner": "bottom-left",
+     "stars": 0,
+     "comments": [],
+     "createdAt": "2026-09-16T13:13:25.128Z",
+     "status": "nueva",
+     "description": "El cliente sube o baja el cupo de su tarjeta virtual al instante desde la app, por compra puntual o por periodo, sin llamar al banco. (Ejemplo real de la industria: Nubank (Brasil). Evaluar cómo adaptarlo a nuestra app/web.)",
+     "dept": "Banco Bci",
+     "category": "spontaneous",
+     "hearts": 0,
+     "title": "Límite de tarjeta virtual ajustable en tiempo real",
+     "id": "idea-1789564405128",
+     "impact": "medio",
+     "owner": "",
+     "author": "Colaborador Anónimo",
+     "effort": "medio",
+     "nodeId": "center-left",
+     "businessArea": "",
+     "stackIndex": 1
+    },
+    {
+     "stackIndex": 0,
+     "createdAt": "2026-11-26T20:13:35.809Z",
+     "category": "spontaneous",
+     "hearts": 0,
+     "description": "\"Vaults\": cada compra se redondea y la diferencia va a una meta de ahorro, que puede compartirse y aportar en conjunto con otras personas. (Ejemplo real de la industria: Revolut (Reino Unido). Evaluar cómo adaptarlo a nuestra app/web.)",
+     "comments": [],
+     "status": "nueva",
+     "owner": "",
+     "dept": "Banco Bci",
+     "businessArea": "",
+     "anchorCorner": "bottom-left",
+     "effort": "medio",
+     "id": "idea-1795724015809",
+     "author": "Colaborador Anónimo",
+     "stars": 0,
+     "nodeId": "center-top",
+     "title": "Ahorro automático por redondeo con metas compartidas",
+     "impact": "medio"
+    }
+   ],
+   "team": "Canales Digitales",
+   "name": "Árbol Innovación Bci"
+  },
+  {
+   "ideas": [
+    {
+     "description": "Reducir la carga cognitiva reorganizando accesos rápidos a transferencias e historial reciente.",
+     "hearts": 34,
+     "comments": [],
+     "stars": 29,
+     "businessArea": "Banca Digital",
+     "title": "Rediseño del Dashboard Principal de la App",
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "status": "evaluacion",
+     "category": "pain",
+     "stackIndex": 0,
+     "effort": "medio",
+     "author": "Laura B. (Lead Designer)",
+     "nodeId": "center-top",
+     "dept": "UX Team",
+     "anchorCorner": "bottom-left",
+     "id": "demo-ux-1",
+     "impact": "alto",
+     "owner": "Equipo UX"
+    },
+    {
+     "stars": 38,
+     "hearts": 41,
+     "category": "spontaneous",
+     "businessArea": "Plataforma Digital",
+     "dept": "UX Team",
+     "comments": [],
+     "status": "desarrollo",
+     "title": "Design System Unificado para Web y Mobile",
+     "author": "Marcos V. (Design System)",
+     "effort": "alto",
+     "stackIndex": 0,
+     "nodeId": "left-mid",
+     "owner": "Design System Chapter",
+     "id": "demo-ux-2",
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "anchorCorner": "bottom-right",
+     "description": "Estandarización de componentes con el kit Bci Design Tokens v2.0.",
+     "impact": "medio"
+    }
+   ],
+   "id": "tree-ux-design",
+   "name": "Árbol Experiencia UX/UI",
+   "team": "Diseño & Producto",
+   "useCustomCategories": false,
+   "categories": {
+    "pain": {
+     "name": "Dolor de Experiencia",
+     "borderClass": "border-l-rose-500",
+     "id": "pain",
+     "desc": "Puntos de fricción actuales del cliente o colaboradores.",
+     "badgeClass": "bg-rose-500/10 text-rose-400 border-rose-500/20",
+     "bgIcon": "bg-rose-500/20 text-rose-400",
+     "colorHex": "#f43f5e",
+     "icon": "fa-heart-crack",
+     "glowColor": "rgba(244, 63, 94, 0.35)"
+    },
+    "metrics": {
+     "id": "metrics",
+     "desc": "Ideas sustentadas en datos, KPIs de conversión o uso de canales.",
+     "name": "Basada en Métricas",
+     "borderClass": "border-l-blue-500",
+     "glowColor": "rgba(59, 130, 246, 0.35)",
+     "bgIcon": "bg-blue-500/20 text-blue-400",
+     "badgeClass": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+     "icon": "fa-chart-line",
+     "colorHex": "#3b82f6"
+    },
+    "spontaneous": {
+     "desc": "Propuestas creativas u oportunidades emergentes sin restricciones.",
+     "glowColor": "rgba(16, 185, 129, 0.35)",
+     "colorHex": "#10b981",
+     "bgIcon": "bg-emerald-500/20 text-emerald-400",
+     "badgeClass": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+     "name": "Iniciativa Espontánea",
+     "icon": "fa-lightbulb",
+     "borderClass": "border-l-emerald-500",
+     "id": "spontaneous"
+    },
+    "bank": {
+     "glowColor": "rgba(139, 92, 246, 0.35)",
+     "badgeClass": "bg-purple-500/10 text-purple-400 border-purple-500/20",
+     "colorHex": "#8b5cf6",
+     "icon": "fa-building-columns",
+     "bgIcon": "bg-purple-500/20 text-purple-400",
+     "borderClass": "border-l-purple-500",
+     "id": "bank",
+     "name": "Mejora en el Banco",
+     "desc": "Optimización de procesos internos, automatización y eficiencia."
+    }
+   }
+  },
+  {
+   "ideas": [
+    {
+     "dept": "Créditos",
+     "status": "desarrollo",
+     "title": "Aprobación de Créditos Pyme en 5 minutos",
+     "comments": [
+      {
+       "createdAt": "2026-08-26T17:09:11.977Z",
+       "id": "c-3",
+       "text": "Ya tenemos el piloto con SII corriendo en sandbox, avanza bien.",
+       "author": "Valentina R. (Producto)"
+      }
+     ],
+     "businessArea": "Créditos Pyme",
+     "description": "Evaluación de riesgo automatizada mediante sincronización con SII y carpeta tributaria.",
+     "stars": 47,
+     "hearts": 63,
+     "category": "bank",
+     "stackIndex": 0,
+     "impact": "alto",
+     "owner": "Risk Fintech",
+     "id": "demo-pyme-1",
+     "anchorCorner": "bottom-left",
+     "nodeId": "right-mid",
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "author": "Gonzalo M. (Risk Fintech)",
+     "effort": "alto"
+    }
+   ],
+   "id": "tree-pymes",
+   "categories": {
+    "spontaneous": {
+     "badgeClass": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+     "icon": "fa-lightbulb",
+     "colorHex": "#10b981",
+     "id": "spontaneous",
+     "bgIcon": "bg-emerald-500/20 text-emerald-400",
+     "name": "Iniciativa Espontánea",
+     "glowColor": "rgba(16, 185, 129, 0.35)",
+     "borderClass": "border-l-emerald-500",
+     "desc": "Propuestas creativas u oportunidades emergentes sin restricciones."
+    },
+    "bank": {
+     "icon": "fa-building-columns",
+     "badgeClass": "bg-purple-500/10 text-purple-400 border-purple-500/20",
+     "borderClass": "border-l-purple-500",
+     "bgIcon": "bg-purple-500/20 text-purple-400",
+     "glowColor": "rgba(139, 92, 246, 0.35)",
+     "desc": "Optimización de procesos internos, automatización y eficiencia.",
+     "id": "bank",
+     "colorHex": "#8b5cf6",
+     "name": "Mejora en el Banco"
+    },
+    "metrics": {
+     "badgeClass": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+     "bgIcon": "bg-blue-500/20 text-blue-400",
+     "colorHex": "#3b82f6",
+     "icon": "fa-chart-line",
+     "id": "metrics",
+     "name": "Basada en Métricas",
+     "borderClass": "border-l-blue-500",
+     "desc": "Ideas sustentadas en datos, KPIs de conversión o uso de canales.",
+     "glowColor": "rgba(59, 130, 246, 0.35)"
+    },
+    "pain": {
+     "borderClass": "border-l-rose-500",
+     "desc": "Puntos de fricción actuales del cliente o colaboradores.",
+     "name": "Dolor de Experiencia",
+     "id": "pain",
+     "badgeClass": "bg-rose-500/10 text-rose-400 border-rose-500/20",
+     "icon": "fa-heart-crack",
+     "colorHex": "#f43f5e",
+     "glowColor": "rgba(244, 63, 94, 0.35)",
+     "bgIcon": "bg-rose-500/20 text-rose-400"
+    }
+   },
+   "useCustomCategories": false,
+   "name": "Árbol Banca Pyme & Empresas",
+   "team": "Banca Empresa"
+  },
+  {
+   "team": "Innovación",
+   "name": "Árbol Innovación & Tendencias",
+   "id": "tree-innovacion-tendencias",
+   "ideas": [
+    {
+     "nodeId": "center-top",
+     "dept": "Innovación",
+     "comments": [],
+     "stackIndex": 0,
+     "author": "Equipo Innovación",
+     "title": "Banca embebida (Embedded Finance) en comercios aliados",
+     "effort": "alto",
+     "stars": 8,
+     "impact": "alto",
+     "businessArea": "Nuevos Negocios",
+     "category": "spontaneous",
+     "owner": "Equipo Innovación",
+     "anchorCorner": "bottom-left",
+     "hearts": 12,
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "status": "evaluacion",
+     "id": "demo-trend-1",
+     "description": "Tendencia del sector: ofrecer productos financieros (crédito, seguros, cuentas) directamente dentro de plataformas de terceros (e-commerce, ERPs de pymes) en vez de solo en el canal propio del banco."
+    }
+   ],
+   "categories": {
+    "spontaneous": {
+     "id": "spontaneous",
+     "desc": "Propuestas creativas u oportunidades emergentes sin restricciones.",
+     "borderClass": "border-l-emerald-500",
+     "name": "Iniciativa Espontánea",
+     "badgeClass": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+     "bgIcon": "bg-emerald-500/20 text-emerald-400",
+     "colorHex": "#10b981",
+     "icon": "fa-lightbulb",
+     "glowColor": "rgba(16, 185, 129, 0.35)"
+    },
+    "metrics": {
+     "id": "metrics",
+     "badgeClass": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+     "name": "Basada en Métricas",
+     "colorHex": "#3b82f6",
+     "glowColor": "rgba(59, 130, 246, 0.35)",
+     "desc": "Ideas sustentadas en datos, KPIs de conversión o uso de canales.",
+     "bgIcon": "bg-blue-500/20 text-blue-400",
+     "borderClass": "border-l-blue-500",
+     "icon": "fa-chart-line"
+    },
+    "pain": {
+     "icon": "fa-heart-crack",
+     "badgeClass": "bg-rose-500/10 text-rose-400 border-rose-500/20",
+     "bgIcon": "bg-rose-500/20 text-rose-400",
+     "name": "Dolor de Experiencia",
+     "id": "pain",
+     "borderClass": "border-l-rose-500",
+     "colorHex": "#f43f5e",
+     "desc": "Puntos de fricción actuales del cliente o colaboradores.",
+     "glowColor": "rgba(244, 63, 94, 0.35)"
+    },
+    "bank": {
+     "desc": "Optimización de procesos internos, automatización y eficiencia.",
+     "bgIcon": "bg-purple-500/20 text-purple-400",
+     "name": "Mejora en el Banco",
+     "icon": "fa-building-columns",
+     "id": "bank",
+     "badgeClass": "bg-purple-500/10 text-purple-400 border-purple-500/20",
+     "glowColor": "rgba(139, 92, 246, 0.35)",
+     "borderClass": "border-l-purple-500",
+     "colorHex": "#8b5cf6"
+    }
+   },
+   "useCustomCategories": false
+  },
+  {
+   "team": "Innovación",
+   "name": "Árbol Innovación & Tendencias 2",
+   "id": "tree-innovacion-tendencias-2",
+   "theme": "light",
+   "categories": {
+    "bank": {
+     "colorHex": "#8b5cf6",
+     "icon": "fa-building-columns",
+     "bgIcon": "bg-purple-500/20 text-purple-400",
+     "borderClass": "border-l-purple-500",
+     "desc": "Optimización de procesos internos, automatización y eficiencia.",
+     "id": "bank",
+     "badgeClass": "bg-purple-500/10 text-purple-400 border-purple-500/20",
+     "name": "Mejora en el Banco",
+     "glowColor": "rgba(139, 92, 246, 0.35)"
+    },
+    "metrics": {
+     "name": "Basada en Métricas",
+     "glowColor": "rgba(59, 130, 246, 0.35)",
+     "badgeClass": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+     "desc": "Ideas sustentadas en datos, KPIs de conversión o uso de canales.",
+     "bgIcon": "bg-blue-500/20 text-blue-400",
+     "colorHex": "#3b82f6",
+     "icon": "fa-chart-line",
+     "id": "metrics",
+     "borderClass": "border-l-blue-500"
+    },
+    "spontaneous": {
+     "borderClass": "border-l-emerald-500",
+     "desc": "Propuestas creativas u oportunidades emergentes sin restricciones.",
+     "glowColor": "rgba(16, 185, 129, 0.35)",
+     "badgeClass": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+     "bgIcon": "bg-emerald-500/20 text-emerald-400",
+     "name": "Iniciativa Espontánea",
+     "icon": "fa-lightbulb",
+     "colorHex": "#10b981",
+     "id": "spontaneous"
+    },
+    "pain": {
+     "glowColor": "rgba(244, 63, 94, 0.35)",
+     "desc": "Puntos de fricción actuales del cliente o colaboradores.",
+     "name": "Dolor de Experiencia",
+     "icon": "fa-heart-crack",
+     "bgIcon": "bg-rose-500/20 text-rose-400",
+     "badgeClass": "bg-rose-500/10 text-rose-400 border-rose-500/20",
+     "id": "pain",
+     "borderClass": "border-l-rose-500",
+     "colorHex": "#f43f5e"
+    }
+   },
+   "useCustomCategories": false,
+   "ideas": [
+    {
+     "title": "Banca embebida (Embedded Finance) en comercios aliados",
+     "stackIndex": 0,
+     "hearts": 12,
+     "id": "demo-trend2-1",
+     "status": "evaluacion",
+     "anchorCorner": "bottom-left",
+     "stars": 8,
+     "nodeId": "center-top",
+     "businessArea": "Nuevos Negocios",
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "comments": [],
+     "effort": "alto",
+     "author": "Equipo Innovación",
+     "owner": "Equipo Innovación",
+     "dept": "Innovación",
+     "impact": "alto",
+     "description": "Tendencia del sector: ofrecer productos financieros (crédito, seguros, cuentas) directamente dentro de plataformas de terceros (e-commerce, ERPs de pymes) en vez de solo en el canal propio del banco.",
+     "category": "spontaneous"
+    },
+    {
+     "anchorCorner": "bottom-left",
+     "category": "spontaneous",
+     "stackIndex": 0,
+     "createdAt": "2026-08-26T17:09:11.977Z",
+     "impact": "medio",
+     "effort": "medio",
+     "author": "Colaborador Anónimo",
+     "comments": [],
+     "nodeId": "right-top",
+     "owner": "",
+     "description": "Tendencia detectada en Hacker News (#36 puntos, 220 comentarios). Ejemplo de contenido que puede convertirse en idea desde el panel de Tendencias en Vivo.",
+     "status": "nueva",
+     "stars": 8,
+     "title": "Fintech Engineering Handbook",
+     "dept": "Innovación",
+     "hearts": 9,
+     "businessArea": "",
+     "id": "demo-trend2-2"
+    }
+   ]
+  }
+ ],
+ "appConfig": {
+  "bgValue": "#020617",
+  "bgType": "theme"
+ }
+};
