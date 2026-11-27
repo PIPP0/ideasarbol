@@ -555,31 +555,41 @@
         var arbol = '';
         try { if (typeof currentTreeId !== 'undefined' && currentTreeId) arbol = '&tree=' + encodeURIComponent(currentTreeId); } catch (e) {}
         var url = base + '?estilo=' + encodeURIComponent(id) + arbol;
+        // Pantalla de espera: queda visible hasta que la página se recarga (Apps Script tarda varios segundos en
+        // abrir la app de nuevo). Barra de progreso, cronómetro y mensajes que avanzan para que se note que trabaja.
+        var nombre = id;
+        try { estilos.forEach(function (x) { if (x.id === id) nombre = x.nombre || x.titulo || id; }); } catch (e) {}
         var ov = document.getElementById('dsCargando');
-        if (!ov) {
-          ov = document.createElement('div'); ov.id = 'dsCargando';
-          ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(255,255,255,.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font:16px/1.4 system-ui,sans-serif;color:#3D4F5C';
-          ov.innerHTML = '<div style="width:44px;height:44px;border:4px solid #E0E6EB;border-top-color:#248910;border-radius:50%;animation:dsgiro .9s linear infinite"></div><div id="dsCargandoTxt"></div>';
-          document.body.appendChild(ov);
-        }
-        ov.style.opacity = '1'; ov.style.display = 'flex';
-        var tx = document.getElementById('dsCargandoTxt'); if (tx) tx.textContent = 'Cambiando el estilo…';
+        if (ov) ov.remove();
+        ov = document.createElement('div'); ov.id = 'dsCargando';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(255,255,255,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font:16px/1.4 system-ui,sans-serif;color:#3D4F5C;text-align:center;padding:24px';
+        ov.innerHTML = '<style>@keyframes dsbarra{0%{left:-40%}100%{left:100%}}</style>' +
+          '<div style="width:44px;height:44px;border:4px solid #E0E6EB;border-top-color:#248910;border-radius:50%;animation:dsgiro .9s linear infinite"></div>' +
+          '<div style="font-weight:700;font-size:18px;color:#1F292E">Cambiando a «' + String(nombre).replace(/[<>&]/g, '') + '»</div>' +
+          '<div id="dsCargandoTxt">Aplicando el estilo…</div>' +
+          '<div style="position:relative;overflow:hidden;width:min(280px,70vw);height:6px;border-radius:9999px;background:#E0E6EB"><div style="position:absolute;top:0;bottom:0;width:40%;border-radius:9999px;background:#248910;animation:dsbarra 1.4s ease-in-out infinite"></div></div>' +
+          '<div id="dsCargandoSeg" style="font-size:13px;color:#587184">Esto toma unos segundos · 0 s</div>' +
+          '<div id="dsCargandoAyuda" style="min-height:40px"></div>';
+        document.body.appendChild(ov);
+        var t0 = Date.now();
+        var pasos = [[0, 'Aplicando el estilo…'], [3, 'Recargando la aplicación con el nuevo estilo…'], [7, 'Google está armando la página, ya casi…'], [14, 'Está tardando más de lo normal…']];
+        var reloj = setInterval(function () {
+          var s = Math.round((Date.now() - t0) / 1000);
+          var tx = document.getElementById('dsCargandoTxt'), sg = document.getElementById('dsCargandoSeg');
+          if (!tx) { clearInterval(reloj); return; }
+          var m = pasos[0][1]; pasos.forEach(function (q) { if (s >= q[0]) m = q[1]; });
+          tx.textContent = m;
+          if (sg) sg.textContent = 'Esto toma unos segundos · ' + s + ' s';
+          if (s >= 12) {
+            var ay = document.getElementById('dsCargandoAyuda');
+            if (ay && !ay.firstChild) ay.innerHTML = '<a href="' + url + '" target="_top" style="background:#248910;color:#fff;border-radius:9999px;padding:8px 16px;text-decoration:none;font-weight:600">Abrir con el nuevo estilo</a>';
+          }
+        }, 500);
         try {
           var a = document.createElement('a');
           a.href = url; a.target = '_top'; a.rel = 'noopener';
           document.body.appendChild(a); a.click(); document.body.removeChild(a);
         } catch (e) {}
-        // Si el navegador no permitió la recarga automática, se ofrece un enlace directo (un clic real siempre funciona)
-        setTimeout(function () {
-          var ov2 = document.getElementById('dsCargando'); if (ov2) ov2.remove();
-          var box = document.createElement('div');
-          box.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:2147483600;background:#fff;color:#1F292E;border:1px solid #C2CED6;border-radius:9999px;padding:10px 18px;box-shadow:0 8px 24px rgba(0,0,0,.25);font:14px/1.4 system-ui,sans-serif;display:flex;gap:12px;align-items:center';
-          var l = document.createElement('a');
-          l.href = url; l.target = '_top'; l.textContent = 'Abrir con el nuevo estilo';
-          l.style.cssText = 'background:#248910;color:#fff;border-radius:9999px;padding:6px 14px;text-decoration:none;font-weight:600';
-          var t = document.createElement('span'); t.textContent = 'El estilo no cambió solo:';
-          box.appendChild(t); box.appendChild(l); document.body.appendChild(box);
-        }, 2500);
       };
 
       // Miniatura generada con los mismos tokens de cada estilo
