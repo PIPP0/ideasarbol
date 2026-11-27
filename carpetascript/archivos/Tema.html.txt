@@ -29,15 +29,43 @@
   var ds = dsFile.designSystem;
   var estilosFile = loadJson('estilos_arbol.json') || { estiloPorDefecto: 'editorial', estilos: [] };
 
+  // Deshace lo que el estilo anterior agregó a la página, para poder aplicar otro sin recargar
+  function limpiar() {
+    var r = document.documentElement;
+    [].slice.call(r.classList).forEach(function (c) { if (/^estilo-/.test(c) || c === 'ds-claro' || c === 'ds-oscuro') r.classList.remove(c); });
+    ['ds-theme-bci', 'ds-font-link'].forEach(function (id) { var n = document.getElementById(id); if (n) n.remove(); });
+    var img = document.querySelector('img[data-ds-logo]');
+    if (img) { var bx = document.querySelector('header .w-10.h-10.rounded-xl'); if (bx) bx.style.display = ''; img.remove(); }
+    var bar = document.getElementById('dsTopStrip');
+    if (bar) {
+      var st = bar.querySelector('.ds-stats'), o = window.__dsStatsOrigen;
+      if (st) {
+        st.classList.remove('ds-stats');
+        if (o && o.padre) o.padre.insertBefore(st, o.hermano && o.hermano.parentNode === o.padre ? o.hermano : null);
+      }
+      if (bar.__obs) bar.__obs.disconnect();
+      bar.remove();
+    }
+  }
+  window.__dsCambiar = function (id) {
+    limpiar();
+    window.__dsAplicar(id);
+    // lo que se dibuja con los colores del estilo se vuelve a dibujar
+    ['applyCanvasTheme', 'applyAppBackground', 'updateTreePickerUI', 'renderSidebarCategories', 'renderTreeCards', 'renderConfigCategories', 'renderConfigTreesList', 'updateGlobalStats'].forEach(function (f) {
+      try { if (typeof window[f] === 'function') window[f](); } catch (e) { console.warn('[Tema] ' + f, e); }
+    });
+  };
+
+  window.__dsAplicar = function (idNuevo) {
   // ---------- Selección del estilo ----------
   var STORE_KEY = 'ideasarbol_estilo';
   var wanted = null;
-  wanted = __P.estilo || null;
-  if (!wanted && __PREFS.estilo) wanted = __PREFS.estilo;
+  wanted = __PREFS.estilo || __P.estilo || null;
   if (!wanted) { try { wanted = localStorage.getItem(STORE_KEY); } catch (e) {} }
   var estilos = estilosFile.estilos || [];
   var fromUrl = false;
-  fromUrl = !!__P.estilo;
+  fromUrl = !!(__P.estilo || __PREFS.estilo);
+  if (idNuevo) { wanted = idNuevo; fromUrl = true; }
   var ofrecidos = estilos.filter(function (x) { return x.enTemas !== false; });
   // un estilo guardado que ya no se ofrece en Temas se ignora (por URL sí se puede abrir)
   if (!fromUrl && wanted && !ofrecidos.some(function (x) { return x.id === wanted; })) wanted = null;
@@ -443,6 +471,7 @@
   var link = document.createElement('link');
   link.rel = 'stylesheet';
   link.href = 'https://fonts.googleapis.com/css2?family=Overpass:wght@300;400;500;600;700&family=Overpass+Mono&display=swap';
+  link.id = 'ds-font-link';
   document.head.appendChild(link);
 
   var style = document.createElement('style');
@@ -451,7 +480,7 @@
   document.head.appendChild(style);
 
   // ---------- Logo + selector de estilo ----------
-  document.addEventListener('DOMContentLoaded', function () {
+  var __dom = function () {
     try {
       var logo = ds.branding && ds.branding.logo && ds.branding.logo.main;
       var box = document.querySelector('header .w-10.h-10.rounded-xl');
@@ -459,6 +488,7 @@
         var img = document.createElement('img');
         img.src = logo.path;
         img.alt = logo.alt || 'Bci';
+        img.setAttribute('data-ds-logo', '1');
         img.style.width = logo.width || '120px';
         img.style.height = logo.height || 'auto';
         img.style.flexShrink = '0';
@@ -507,7 +537,8 @@
           if (n) obs.observe(n, { childList: true, characterData: true, subtree: true });
         });
         var stats = document.querySelector('header .xl\\:flex');
-        if (stats) { stats.classList.add('ds-stats'); bar0.appendChild(stats); }
+        if (stats) { window.__dsStatsOrigen = { padre: stats.parentNode, hermano: stats.nextSibling }; stats.classList.add('ds-stats'); bar0.appendChild(stats); }
+        bar0.__obs = obs;
         refreshStrip();
         setTimeout(refreshStrip, 600);
       } catch (e) { console.warn('[Tema Bci] barra superior', e); }
@@ -538,7 +569,7 @@
     // ---------- Panel Ajustes > Temas: los estilos del sistema de diseño ----------
     try {
       var modal = document.getElementById('configModal');
-      var lblEl = modal && [].slice.call(modal.querySelectorAll('label')).filter(function (l) { return /Temas y Colores/i.test(l.textContent); })[0];
+      var lblEl = modal && [].slice.call(modal.querySelectorAll('label')).filter(function (l) { return /Temas y (Colores|estilos)/i.test(l.textContent); })[0];
       if (!lblEl) return;
       lblEl.textContent = 'Temas y estilos';
       var head = lblEl.parentElement;
@@ -547,49 +578,11 @@
       var cardBorder = LIGHT ? g[200] : bl[700], cardInk = LIGHT ? g[900] : P.white.main, cardSub = LIGHT ? g[600] : bl[200];
 
       var pick = function (id) {
+        if (id === E.id) return;
         try { localStorage.setItem(STORE_KEY, id); } catch (e) {}
-        // Apps Script: la página corre en un marco, así que el estilo se cambia reabriendo la app con ?estilo=.
-        // La navegación se hace DENTRO del mismo clic (así el navegador la permite) y el estilo se guarda
-        // en el servidor al cargar la nueva página.
-        var base = (window.__BOOT && window.__BOOT.baseUrl) || '';
-        var arbol = '';
-        try { if (typeof currentTreeId !== 'undefined' && currentTreeId) arbol = '&tree=' + encodeURIComponent(currentTreeId); } catch (e) {}
-        var url = base + '?estilo=' + encodeURIComponent(id) + arbol;
-        // Pantalla de espera: queda visible hasta que la página se recarga (Apps Script tarda varios segundos en
-        // abrir la app de nuevo). Barra de progreso, cronómetro y mensajes que avanzan para que se note que trabaja.
-        var nombre = id;
-        try { estilos.forEach(function (x) { if (x.id === id) nombre = x.nombre || x.titulo || id; }); } catch (e) {}
-        var ov = document.getElementById('dsCargando');
-        if (ov) ov.remove();
-        ov = document.createElement('div'); ov.id = 'dsCargando';
-        ov.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(255,255,255,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font:16px/1.4 system-ui,sans-serif;color:#3D4F5C;text-align:center;padding:24px';
-        ov.innerHTML = '<style>@keyframes dsbarra{0%{left:-40%}100%{left:100%}}</style>' +
-          '<div style="width:44px;height:44px;border:4px solid #E0E6EB;border-top-color:#248910;border-radius:50%;animation:dsgiro .9s linear infinite"></div>' +
-          '<div style="font-weight:700;font-size:18px;color:#1F292E">Cambiando a «' + String(nombre).replace(/[<>&]/g, '') + '»</div>' +
-          '<div id="dsCargandoTxt">Aplicando el estilo…</div>' +
-          '<div style="position:relative;overflow:hidden;width:min(280px,70vw);height:6px;border-radius:9999px;background:#E0E6EB"><div style="position:absolute;top:0;bottom:0;width:40%;border-radius:9999px;background:#248910;animation:dsbarra 1.4s ease-in-out infinite"></div></div>' +
-          '<div id="dsCargandoSeg" style="font-size:13px;color:#587184">Esto toma unos segundos · 0 s</div>' +
-          '<div id="dsCargandoAyuda" style="min-height:40px"></div>';
-        document.body.appendChild(ov);
-        var t0 = Date.now();
-        var pasos = [[0, 'Aplicando el estilo…'], [3, 'Recargando la aplicación con el nuevo estilo…'], [7, 'Google está armando la página, ya casi…'], [14, 'Está tardando más de lo normal…']];
-        var reloj = setInterval(function () {
-          var s = Math.round((Date.now() - t0) / 1000);
-          var tx = document.getElementById('dsCargandoTxt'), sg = document.getElementById('dsCargandoSeg');
-          if (!tx) { clearInterval(reloj); return; }
-          var m = pasos[0][1]; pasos.forEach(function (q) { if (s >= q[0]) m = q[1]; });
-          tx.textContent = m;
-          if (sg) sg.textContent = 'Esto toma unos segundos · ' + s + ' s';
-          if (s >= 12) {
-            var ay = document.getElementById('dsCargandoAyuda');
-            if (ay && !ay.firstChild) ay.innerHTML = '<a href="' + url + '" target="_top" style="background:#248910;color:#fff;border-radius:9999px;padding:8px 16px;text-decoration:none;font-weight:600">Abrir con el nuevo estilo</a>';
-          }
-        }, 500);
-        try {
-          var a = document.createElement('a');
-          a.href = url; a.target = '_top'; a.rel = 'noopener';
-          document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        } catch (e) {}
+        // se recuerda como preferencia de la persona (por correo) y el estilo se aplica al instante, sin recargar
+        try { google.script.run.apiGuardarPrefs({ estilo: id }); } catch (e) {}
+        window.__dsCambiar(id);
       };
 
       // Miniatura generada con los mismos tokens de cada estilo
@@ -658,7 +651,10 @@
       var bgBlock = bgInput && bgInput.closest('.pt-3');
       if (bgBlock) bgBlock.style.display = 'none';
     } catch (e) { console.warn('[Tema Bci] panel de temas', e); }
-  });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', __dom); else __dom();
+  };
+  window.__dsAplicar();
 })();
 
 </script>
