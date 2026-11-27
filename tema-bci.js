@@ -321,7 +321,18 @@
   // Sin brillos difuminados en modo claro (se ven sucios sobre blanco)
   if (LIGHT) {
     add(S + '[filter], ' + S + '#dynamicSubBranches, ' + S + '#branchConnectors [filter]', 'filter:none !important');
-    add(S + '#animatedBirdsLayer', 'display:none');
+    // Aves: se mantienen, sin brillo y con colores planos del sistema (alas por categoría, cuerpo y patas en gris)
+    var BIRD = S + '#animatedBirdsLayer ';
+    [['#2dd4bf', cat.spontaneous.linea], ['#34d399', cat.spontaneous.linea], ['#38bdf8', cat.metrics.linea],
+     ['#c084fc', cat.bank.linea], ['#fbbf24', yl[500]]].forEach(function (m) {
+      add(BIRD + 'path[fill="' + m[0] + '"]', 'fill:' + m[1] + ';opacity:.95');
+    });
+    ['#5eead4', '#a7f3d0', '#93c5fd', '#e879f9', '#fef08a'].forEach(function (h) {
+      add(BIRD + 'ellipse[fill="' + h + '"]', 'fill:' + g[700]);
+    });
+    ['#0284c7', '#059669', '#14b8a6', '#334155', '#a855f7', '#f59e0b'].forEach(function (h) {
+      add(BIRD + 'path[stroke="' + h + '"]', 'stroke:' + g[700]);
+    });
     add(S + '.leaf-pulse', 'animation:none !important');
     add(S + 'path[d="M 700 800 L 700 380"]', 'display:none');
   }
