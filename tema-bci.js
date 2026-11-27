@@ -326,6 +326,69 @@
   }
   // Tarjetas fuera de color en el selector de colores: sin cambios
 
+  // =====================================================================
+  //  Estilo "Sitio Bci": lenguaje visual de bci.cl
+  // =====================================================================
+  var SITIO = E.referencia === 'bci.cl';
+  var motivoUrl = '';
+  if (SITIO) {
+    var svgMotivo = '<svg xmlns="http://www.w3.org/2000/svg" width="72" height="18" viewBox="0 0 56 14">' +
+      '<rect x="0" y="1" width="12" height="12" fill="' + rd.primary + '"/>' +
+      '<circle cx="21" cy="7" r="6" fill="' + gr.primary + '"/>' +
+      '<polygon points="28,13 34,1 40,13" fill="' + yl.primary + '"/>' +
+      '<rect x="43" y="2" width="13" height="10" fill="' + bl.dark + '"/></svg>';
+    motivoUrl = 'url("data:image/svg+xml;utf8,' + encodeURIComponent(svgMotivo) + '")';
+    var panel = res(E.panelLateral || '{colors.palette.gray.50}');
+    var B = H.replace('html.theme-bci ', 'html.estilo-sitio-bci ') + ''; // prefijo más específico
+    B = 'html.theme-bci.estilo-sitio-bci ';
+
+    // Barra lateral: sección gris 50, titular en frase con la fila de figuras
+    add(B + 'aside#sidebar', 'background:' + panel + ' !important;border-right:1px solid ' + g[100] + ' !important;box-shadow:none');
+    add(B + '#sidebar h2', 'font-size:18px;line-height:24px;font-weight:600;text-transform:none;letter-spacing:0;color:' + g[700]);
+    add(B + '#sidebar h2::before', 'content:"";display:block;width:72px;height:18px;margin-bottom:10px;background:' + motivoUrl + ' no-repeat left center');
+    add(B + '#sidebar h2 + p', 'font-size:13px;line-height:20px;color:' + g[600]);
+    add(B + '#sidebar .text-xs.font-semibold.text-slate-400', 'color:' + g[700] + ';font-size:12px');
+    // Tarjetas de categoría: ícono en círculo pastel, como las "herramientas" del sitio
+    add(B + '.sidebar-preset-card', 'background:' + P.white.main + ' !important;box-shadow:' + SH.sm + ' !important;border-radius:' + R.md + ' !important');
+    add(B + '.sidebar-preset-card .w-7.h-7', 'width:38px;height:38px;border-radius:' + R.pill + ';font-size:15px');
+    add(B + '.sidebar-preset-card .text-sm', 'font-size:15px;font-weight:600');
+
+    // Encabezado: botones en píldora. Compartir = verde sólido, Top = azul sólido, resto = contorno suave
+    var hb = B + 'header #shareTreeUrlBtn, ' + B + 'header #toggleLeaderboardBtn, ' + B + 'header #openConfigBtn, ' + B + 'header #toggleMatrixBtn, ' + B + 'header #toggleTrendsBtn, ' + B + 'header #resetDemoBtn, ' + B + 'header #exportCsvBtn';
+    add(hb, 'border-radius:' + R.pill + ' !important;font-weight:600');
+    add(B + 'header #shareTreeUrlBtn', 'background:' + gr[700] + ' !important;color:#fff !important;border:2px solid ' + gr[700] + ' !important;text-transform:uppercase;letter-spacing:.05em');
+    add(B + 'header #shareTreeUrlBtn *', 'color:#fff !important');
+    add(B + 'header #shareTreeUrlBtn:hover', 'background:' + gr[600] + ' !important;border-color:' + gr[600] + ' !important');
+    add(B + 'header #toggleLeaderboardBtn', 'background:' + bl[600] + ' !important;color:#fff !important;border:2px solid ' + bl[600] + ' !important;text-transform:uppercase;letter-spacing:.05em');
+    add(B + 'header #toggleLeaderboardBtn *', 'color:#fff !important');
+    add(B + 'header #toggleLeaderboardBtn:hover', 'background:' + bl[700] + ' !important;border-color:' + bl[700] + ' !important');
+    add(list([B + 'header #openConfigBtn', B + 'header #toggleMatrixBtn', B + 'header #toggleTrendsBtn', B + 'header #resetDemoBtn', B + 'header #exportCsvBtn']),
+      'background:' + P.white.main + ' !important;border:1px solid ' + g[200] + ' !important;color:' + g[700] + ' !important');
+    add(list([B + 'header #openConfigBtn:hover', B + 'header #toggleMatrixBtn:hover', B + 'header #toggleTrendsBtn:hover', B + 'header #resetDemoBtn:hover', B + 'header #exportCsvBtn:hover']),
+      'background:' + g[50] + ' !important;border-color:' + g[400] + ' !important');
+
+    // Botones de los diálogos: mayúsculas con espaciado, como en el sitio
+    add(list([B + '#ideaModal button[type="submit"]', B + '#saveConfigChangesBtn', B + '#saveNewTreeBtn', B + '#applyBgUrlBtn', B + '#confirmDeleteConfirmBtn']),
+      'text-transform:uppercase;letter-spacing:.05em');
+    // Enlaces de las tarjetas: azul en mayúsculas pequeñas
+    add(list([B + 'button[onclick^="toggleCardDescription"]']), 'color:' + bl[600] + ' !important;text-transform:uppercase;letter-spacing:.05em;font-weight:700');
+    add(list([B + '#configModal h3::before', B + '#priorityMatrixView h2::before']), 'content:"";display:block;width:72px;height:18px;margin-bottom:8px;background:' + motivoUrl + ' no-repeat left center');
+
+    // Barra superior oscura con los árboles como pestañas
+    var strip = res(E.franjaSuperior || '{colors.palette.gray.700}');
+    add(B + '#dsTopStrip', 'display:flex;align-items:stretch;gap:0;height:36px;flex-shrink:0;background:' + strip + ';overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none;z-index:31');
+    add(B + '#dsTopStrip::-webkit-scrollbar', 'display:none');
+    add(B + '#dsTopStrip button', 'all:unset;box-sizing:border-box;cursor:pointer;padding:0 16px;display:flex;align-items:center;font-family:' + font + ';font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:' + g[100] + ';transition:background .15s');
+    add(B + '#dsTopStrip button:hover', 'background:' + g[600]);
+    add(B + '#dsTopStrip button[aria-current="true"]', 'background:' + g[50] + ';color:' + g[800] + ';font-weight:600');
+    add(B + '#dsTopStrip .ds-stats', 'margin-left:auto;display:flex !important;align-items:center;gap:18px;padding-right:16px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap');
+    add(B + '#dsTopStrip .ds-stats > div', 'background:transparent !important;border:0 !important;padding:0 !important;gap:6px !important;color:' + g[100] + ' !important');
+    add(B + '#dsTopStrip .ds-stats span, ' + B + '#dsTopStrip .ds-stats strong', 'color:' + g[100] + ' !important');
+    add(B + '#dsTopStrip .ds-stats strong', 'color:#fff !important;font-weight:700');
+    add(B + '#dsTopStrip .ds-stats i', 'font-size:12px');
+    add(B + '#dsTopStrip button:focus-visible', 'outline:2px solid ' + yl[500] + ';outline-offset:-2px');
+  }
+
   // ---------- Fuente ----------
   var link = document.createElement('link');
   link.rel = 'stylesheet';
@@ -360,6 +423,45 @@
         box.parentNode.insertBefore(img, box);
       }
     } catch (e) { console.warn('[Tema Bci] logo', e); }
+
+    if (SITIO) {
+      try {
+        var body = document.body, hdr = document.querySelector('header');
+        var bar0 = document.createElement('nav');
+        bar0.id = 'dsTopStrip';
+        bar0.setAttribute('aria-label', 'Árboles de ideas');
+        body.insertBefore(bar0, hdr);
+        var refreshStrip = function () {
+          try {
+            if (typeof trees === 'undefined' || !trees.length) return;
+            var sig = trees.map(function (t) { return t.id + ':' + t.name; }).join('|') + '#' + currentTreeId;
+            if (bar0.getAttribute('data-sig') === sig) return;
+            bar0.setAttribute('data-sig', sig);
+            [].slice.call(bar0.querySelectorAll(':scope > button')).forEach(function (n) { n.remove(); });
+            var statsEl = bar0.querySelector('.ds-stats');
+            trees.forEach(function (t) {
+              var b = document.createElement('button');
+              b.type = 'button';
+              b.textContent = t.name.replace(/^Árbol\s+/i, '');
+              b.title = t.name + (t.team ? ' · ' + t.team : '');
+              if (t.id === currentTreeId) b.setAttribute('aria-current', 'true');
+              b.onclick = function () { if (window.switchActiveTree) window.switchActiveTree(t.id); };
+              bar0.insertBefore(b, statsEl);
+            });
+          } catch (e) {}
+        };
+        // El árbol activo y la lista cambian cuando la app redibuja el selector del encabezado
+        var obs = new MutationObserver(refreshStrip);
+        ['pickerActiveTreeName', 'treePickerMenuOptions'].forEach(function (id) {
+          var n = document.getElementById(id);
+          if (n) obs.observe(n, { childList: true, characterData: true, subtree: true });
+        });
+        var stats = document.querySelector('header .xl\\:flex');
+        if (stats) { stats.classList.add('ds-stats'); bar0.appendChild(stats); }
+        refreshStrip();
+        setTimeout(refreshStrip, 600);
+      } catch (e) { console.warn('[Tema Bci] barra superior', e); }
+    }
 
     try {
       var host = document.getElementById('canvasContainer');
