@@ -45,7 +45,7 @@
 
   <div class="aviso"><b>Esta página es pública.</b> <code>Semilla.gs</code> incluye el contenido de tus ideas. Cuando termines de instalar en Apps Script, pide que se elimine esta carpeta.</div>
 
-  <div class="aviso" style="background:#EDFAEB;border-color:#B8EBAD"><b>Actualización 27-nov (versión diag4).</b> Hay que <b>reemplazar <code>Index</code> (archivo 5)</b> y <b>crear o reemplazar <code>App</code> (archivo 6)</b>. <code>App</code> es un archivo grande que se ve como texto raro (letras y números sin sentido): <b>es normal</b>, va codificado para que nada lo altere al pegarlo. Los demás archivos no cambian. Si algo falla, aparece un aviso rojo abajo a la izquierda con un botón <b>Copiar detalles</b>.</div>
+  <div class="aviso" style="background:#EDFAEB;border-color:#B8EBAD"><b>Si el aviso rojo dice «NO SE EJECUTÓ EL CARGADOR»:</b> tu archivo <code>App</code> es el antiguo. Recarga esta página con <b>Cmd+Shift+R</b>, copia el archivo 6 (<code>App</code>) y pégalo reemplazando todo. <b>Cómo comprobar que quedó bien:</b> en Apps Script, el nuevo <code>App</code> tiene unas <b>2.060 líneas</b> y empieza con «Cargador del código de la aplicación» y luego letras y números sin sentido; el antiguo tiene <b>3.222 líneas</b> de código normal.</div>
 
   <ol class="pasos">
     <li>En <b>script.google.com</b>, con tu cuenta del trabajo, abre tu proyecto.</li>
@@ -72,6 +72,7 @@
 </main>
 
 <script>
+  var VERSION_ARCHIVOS = 'diag4-' + Date.now();
   var ARCHIVOS = [
     { n: 1, grupo: 'manifiesto', archivo: 'appsscript.json', crear: 'Ya existe: se edita en ⚙ Configuración del proyecto → Mostrar manifiesto', nombre: 'appsscript.json' },
     { n: 2, grupo: 'script', archivo: 'Code.gs', crear: '+ → Script · nombre: Code', nombre: 'Code', desc: 'Servidor: guarda en Drive, respaldos y acceso' },
@@ -95,8 +96,13 @@
     var btn = d.querySelector('.copiar');
     btn.addEventListener('click', function () { copiar(a, btn); });
     document.getElementById('lista-' + a.grupo).appendChild(d);
-    fetch('archivos/' + a.archivo + '.txt').then(function (r) { return r.text(); }).then(function (t) {
-      d.querySelector('.kb').textContent = Math.max(1, Math.round(t.length / 1024)) + ' KB';
+    fetch('archivos/' + a.archivo + '.txt?v=' + VERSION_ARCHIVOS, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
+      var lineas = t.split('\n').length;
+      d.querySelector('.kb').textContent = Math.max(1, Math.round(t.length / 1024)) + ' KB · ' + lineas + ' líneas';
+      var pv = document.createElement('div');
+      pv.className = 'donde'; pv.style.cssText = 'font:12px/1.4 ui-monospace,monospace;margin-top:4px;color:#3D4F5C;word-break:break-all';
+      pv.textContent = 'Empieza con: ' + t.replace(/\s+/g, ' ').trim().slice(0, 70) + '…';
+      d.children[1].appendChild(pv);
     }).catch(function () {});
   }
 
@@ -104,7 +110,7 @@
   // (algunos navegadores, como Safari, no permiten copiar después de esperar una descarga).
   var TEXTOS = {};
   ARCHIVOS.forEach(function (a) {
-    fetch('archivos/' + a.archivo + '.txt').then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+    fetch('archivos/' + a.archivo + '.txt?v=' + VERSION_ARCHIVOS, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
       .then(function (t) { TEXTOS[a.archivo] = t; }).catch(function () {});
   });
 
