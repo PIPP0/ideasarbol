@@ -459,9 +459,9 @@
       </div>
 
       <!-- Banner de Ayuda -->
-      <div id="dragHelpNotice" class="absolute top-6 left-1/2 -translate-x-1/2 pointer-events-none glass-panel px-4 py-2 rounded-full border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 z-10 opacity-90 shadow-xl transition duration-300">
+      <div id="dragHelpNotice" class="absolute top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap max-w-[94%] pointer-events-none glass-panel px-4 py-1.5 rounded-full border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 z-10 opacity-90 shadow-xl transition duration-300">
         <i class="fa-solid fa-hand-pointer animate-bounce text-emerald-400"></i>
-        <span>Arrastra una tarjeta hacia cualquier rama: su esquina se acoplará directamente a la punta de la rama</span>
+        <span class="truncate">Arrastra una tarjeta hacia cualquier rama: su esquina se acoplará directamente a la punta de la rama</span>
       </div>
 
       <!-- Viewport del Árbol con Zoom y Desplazamiento -->
@@ -3966,12 +3966,16 @@
       const treeViewport = document.getElementById('treeViewport');
       let userTookControlOfZoom = false;
 
-      const ZOOM_MIN = 0.15, ZOOM_MAX = 2.5;
+      // El zoom mínimo no es fijo: es el ajuste del árbol completo a la pantalla menos hasta un 50 %.
+      // Así nunca se puede alejar tanto como para dejar el árbol diminuto.
+      const ZOOM_MAX = 2.5;
+      const MIN_VS_FIT = 0.5;
+      let zoomMin = 0.2;
       const zoomSlider = document.getElementById('zoomSlider');
-      const clampZoom = (z) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+      const clampZoom = (z) => Math.max(zoomMin, Math.min(ZOOM_MAX, z));
       // El deslizador usa escala logarítmica: cada tramo se siente igual de "largo" a cualquier nivel
-      const zoomToSlider = (z) => 100 * Math.log(z / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN);
-      const sliderToZoom = (v) => ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, v / 100);
+      const zoomToSlider = (z) => Math.max(0, Math.min(100, 100 * Math.log(z / zoomMin) / Math.log(ZOOM_MAX / zoomMin)));
+      const sliderToZoom = (v) => zoomMin * Math.pow(ZOOM_MAX / zoomMin, v / 100);
 
       function updateTransform(disableTransition = false) {
         if (disableTransition) {
@@ -4007,10 +4011,11 @@
       }
       function setZoom(newZoom) { zoomAt(newZoom, 0, 0, true); }
 
-      // Límites reales del contenido: el lienzo base (1400x900) más todas las tarjetas,
-      // incluso las que sobresalen del lienzo. Así el árbol se ve completo de entrada.
+      // Límites reales del contenido: el árbol dibujado (ramas, copa y base) más todas las tarjetas,
+      // incluso las que sobresalen. Se usa el área ocupada por el dibujo, no el lienzo completo
+      // de 1400x900, para no dejar bordes vacíos alrededor.
       function getContentBounds() {
-        let minX = 0, minY = 0, maxX = 1400, maxY = 900;
+        let minX = 80, minY = 100, maxX = 1320, maxY = 915;
         document.querySelectorAll('#treeCardsContainer > *').forEach(el => {
           const l = el.offsetLeft, t = el.offsetTop;
           const w = el.offsetWidth, h = el.offsetHeight;
@@ -4021,21 +4026,34 @@
         return { minX, minY, maxX, maxY };
       }
 
-      // Ajusta el zoom y centra el desplazamiento para que TODO el árbol (lienzo y
-      // tarjetas) quepa en el área visible. Es el estado por defecto al cargar, al
-      // cambiar de árbol y lo que hace el botón de "Centrar Árbol".
-      function fitTreeToContainer() {
+      // Márgenes mínimos: arriba queda libre el aviso flotante; abajo/derecha están los controles de zoom
+      const FIT_MARGIN = { x: 10, top: 48, bottom: 10 };
+      function computeFit() {
         const rect = canvasContainer.getBoundingClientRect();
         const b = getContentBounds();
         const bw = b.maxX - b.minX, bh = b.maxY - b.minY;
-        // márgenes: arriba queda libre el aviso flotante, abajo/derecha los controles de zoom
-        const mx = 24, mTop = 64, mBottom = 24;
-        const availW = rect.width - mx * 2;
-        const availH = rect.height - mTop - mBottom;
-        zoomLevel = Math.max(0.15, Math.min(1.5, Math.min(availW / bw, availH / bh)));
+        const availW = rect.width - FIT_MARGIN.x * 2;
+        const availH = rect.height - FIT_MARGIN.top - FIT_MARGIN.bottom;
+        const z = Math.max(0.1, Math.min(1.5, Math.min(availW / bw, availH / bh)));
+        return { z, b, rect, availH };
+      }
+      // Recalcula el mínimo permitido (ajuste a pantalla × 50 %)
+      function refreshZoomMin() {
+        const f = computeFit();
+        zoomMin = Math.max(0.05, f.z * MIN_VS_FIT);
+        return f;
+      }
+
+      // Ajusta el zoom y centra el desplazamiento para que TODO el árbol (dibujo y
+      // tarjetas) quepa en el área visible. Es el estado por defecto al cargar, al
+      // cambiar de árbol y lo que hace el botón de "Ver todo el árbol".
+      function fitTreeToContainer() {
+        const f = refreshZoomMin();
+        const b = f.b;
+        zoomLevel = f.z;
         // el punto central del contenido debe caer en el centro del área disponible
         const bcx = (b.minX + b.maxX) / 2, bcy = (b.minY + b.maxY) / 2;
-        const targetDy = (mTop + availH / 2) - rect.height / 2;
+        const targetDy = (FIT_MARGIN.top + f.availH / 2) - f.rect.height / 2;
         panX = -zoomLevel * (bcx - 700);
         panY = targetDy - zoomLevel * (bcy - 450);
         updateTransform(false);
@@ -4056,6 +4074,7 @@
       }, true);
       window.autoFitIfRequested = function () {
         if (!userTookControlOfZoom && Date.now() < autoFitUntil) fitTreeToContainer();
+        else refreshZoomMin();
       };
 
       // Pasos proporcionales (+25 % / −20 %): se sienten parejos y son fáciles de revertir
@@ -4202,7 +4221,7 @@
       // tamaño hasta que el usuario interactúa manualmente con el zoom/pan
       // (userTookControlOfZoom), momento en que se deja de pisar su ajuste.
       const initialFitObserver = new ResizeObserver(() => {
-        if (userTookControlOfZoom) return;
+        if (userTookControlOfZoom) { refreshZoomMin(); return; }
         const rect = canvasContainer.getBoundingClientRect();
         if (rect.width > 100 && rect.height > 100) {
           fitTreeToContainer();
