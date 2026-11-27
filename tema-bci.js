@@ -325,9 +325,10 @@
     add(S + 'path[d="M 700 800 L 700 380"]', 'display:none');
   }
   // Aves: silueta de perfil con alas que aletean desde el hombro
-  add(S + '.ds-wing', 'transform-origin:3px -2px;animation:dsFlap .5s ease-in-out infinite');
-  add(S + '.ds-wing-far', 'transform-origin:3px -2px;animation:dsFlap .5s ease-in-out infinite;animation-delay:-.07s');
-  css.push('@keyframes dsFlap{0%,100%{transform:rotate(16deg)}50%{transform:rotate(-40deg)}}');
+  // Mismo aleteo que las aves originales: 0,28 s, de reposo a 50° y de vuelta
+  add(S + '.ds-wing', 'transform-origin:3px -2px;animation:dsFlap .28s infinite ease-in-out');
+  add(S + '.ds-wing-far', 'transform-origin:3px -2px;animation:dsFlap .28s infinite ease-in-out;animation-delay:-.06s');
+  css.push('@keyframes dsFlap{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-50deg)}}');
   // Tronco
   add(S + 'path[fill="url(#trunkGrad)"]', 'fill:' + tronco + ';stroke:' + tronco);
   add(S + 'path[stroke="#1e293b"]', 'stroke:' + tronco);
@@ -505,7 +506,7 @@
       var beakFor = function (c) { return c === yl[500] || c === yl[600] || c === yl[400] ? g[700] : yl[500]; };
       [].slice.call(birds).forEach(function (b, i) {
         var c = palette[i % palette.length], w = dark(c), beak = beakFor(c);
-        var svg = '<g transform="scale(1.7)">' +
+        var svg = '<g>' +
           '<path class="ds-wing-far" d="M 3 -2 Q -3 -15 -15 -19 Q -9 -8 -7 -1 Z" fill="' + w + '" opacity=".55"/>' +
           '<polygon points="-9,0 -21,-4 -21,3" fill="' + w + '"/>' +
           '<ellipse cx="0" cy="0" rx="11" ry="4.6" fill="' + c + '"/>' +
