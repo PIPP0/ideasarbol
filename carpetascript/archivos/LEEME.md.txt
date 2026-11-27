@@ -49,7 +49,7 @@ npx @google/clasp open
 1. Entra a https://script.google.com → **Nuevo proyecto** y ponle «Árbol de Ideas Bci».
 2. Crea estos archivos con **exactamente** estos nombres y pega el contenido de cada uno:
    - Script (`+` → Script): `Code`, `Merge`, `Semilla`
-   - HTML (`+` → HTML): `Index`, `Tema`, `Aves`, `Diseno`
+   - HTML (`+` → HTML): `Index`, `App`, `Tema`, `Aves`, `Diseno`
 3. Configuración del proyecto (⚙) → marca **«Mostrar el archivo de manifiesto appsscript.json»** y pega el contenido de `appsscript.json`.
 
 ### Pasos finales (los dos métodos)
@@ -94,5 +94,5 @@ simular a dos personas editando a la vez. Las pruebas de la unión de cambios: `
 
 ## Qué hay en la carpeta
 - `Code.gs` servidor (datos en Drive, respaldos, API) · `Merge.gs` unión de cambios · `Semilla.gs` datos iniciales
-- `Index.html` la aplicación · `Tema.html` / `Aves.html` / `Diseno.html` estilos y aves
+- `Index.html` la página · `App.html` el código de la aplicación · `Tema.html` / `Aves.html` / `Diseno.html` estilos y aves
 - `portar.py` genera los HTML desde el sitio web · `pruebas/` simulador y pruebas
