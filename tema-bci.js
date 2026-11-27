@@ -321,21 +321,13 @@
   // Sin brillos difuminados en modo claro (se ven sucios sobre blanco)
   if (LIGHT) {
     add(S + '[filter], ' + S + '#dynamicSubBranches, ' + S + '#branchConnectors [filter]', 'filter:none !important');
-    // Aves: se mantienen, sin brillo y con colores planos del sistema (alas por categoría, cuerpo y patas en gris)
-    var BIRD = S + '#animatedBirdsLayer ';
-    [['#2dd4bf', cat.spontaneous.linea], ['#34d399', cat.spontaneous.linea], ['#38bdf8', cat.metrics.linea],
-     ['#c084fc', cat.bank.linea], ['#fbbf24', yl[500]]].forEach(function (m) {
-      add(BIRD + 'path[fill="' + m[0] + '"]', 'fill:' + m[1] + ';opacity:.95');
-    });
-    ['#5eead4', '#a7f3d0', '#93c5fd', '#e879f9', '#fef08a'].forEach(function (h) {
-      add(BIRD + 'ellipse[fill="' + h + '"]', 'fill:' + g[700]);
-    });
-    ['#0284c7', '#059669', '#14b8a6', '#334155', '#a855f7', '#f59e0b'].forEach(function (h) {
-      add(BIRD + 'path[stroke="' + h + '"]', 'stroke:' + g[700]);
-    });
     add(S + '.leaf-pulse', 'animation:none !important');
     add(S + 'path[d="M 700 800 L 700 380"]', 'display:none');
   }
+  // Aves: silueta de perfil con alas que aletean desde el hombro
+  add(S + '.ds-wing', 'transform-origin:3px -2px;animation:dsFlap .5s ease-in-out infinite');
+  add(S + '.ds-wing-far', 'transform-origin:3px -2px;animation:dsFlap .5s ease-in-out infinite;animation-delay:-.07s');
+  css.push('@keyframes dsFlap{0%,100%{transform:rotate(16deg)}50%{transform:rotate(-40deg)}}');
   // Tronco
   add(S + 'path[fill="url(#trunkGrad)"]', 'fill:' + tronco + ';stroke:' + tronco);
   add(S + 'path[stroke="#1e293b"]', 'stroke:' + tronco);
@@ -504,6 +496,27 @@
         setTimeout(refreshStrip, 600);
       } catch (e) { console.warn('[Tema Bci] barra superior', e); }
     }
+
+    // ---------- Aves del árbol: silueta de perfil, planas y con colores del sistema ----------
+    try {
+      var birds = document.querySelectorAll('#animatedBirdsLayer > g');
+      var palette = [cat.metrics.linea, cat.pain.linea, cat.bank.linea, cat.spontaneous.linea, LIGHT ? bl.dark : bl[200]];
+      var dark = function (c) { return 'color-mix(in srgb,' + c + ' 78%,#141B1F)'; };
+      var beakFor = function (c) { return c === yl[500] || c === yl[600] || c === yl[400] ? g[700] : yl[500]; };
+      [].slice.call(birds).forEach(function (b, i) {
+        var c = palette[i % palette.length], w = dark(c), beak = beakFor(c);
+        var svg = '<g transform="scale(1.7)">' +
+          '<path class="ds-wing-far" d="M 3 -2 Q -3 -15 -15 -19 Q -9 -8 -7 -1 Z" fill="' + w + '" opacity=".55"/>' +
+          '<polygon points="-9,0 -21,-4 -21,3" fill="' + w + '"/>' +
+          '<ellipse cx="0" cy="0" rx="11" ry="4.6" fill="' + c + '"/>' +
+          '<circle cx="11" cy="-2" r="3.7" fill="' + c + '"/>' +
+          '<polygon points="14,-3 20,-1.4 14,-0.2" fill="' + beak + '"/>' +
+          '<circle cx="12.2" cy="-2.7" r="1" fill="#fff"/><circle cx="12.5" cy="-2.7" r=".5" fill="#141B1F"/>' +
+          '<path class="ds-wing" d="M 3 -2 Q -4 -17 -18 -21 Q -11 -9 -8 -0.5 Z" fill="' + w + '"/>' +
+          '</g>';
+        b.innerHTML = svg;
+      });
+    } catch (e) { console.warn('[Tema Bci] aves', e); }
 
     // ---------- Panel Ajustes > Temas: los estilos del sistema de diseño ----------
     try {
