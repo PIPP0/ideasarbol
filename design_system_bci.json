@@ -1,0 +1,241 @@
+{
+  "designSystem": {
+    "name": "Sistema de Diseño BCI",
+    "version": "1.3.0",
+    "description": "Parámetros gráficos de la marca Bci, incluyendo la paleta de colores completa y los componentes actualizados.",
+    "branding": {
+      "logo": {
+        "main": {
+          "path": "https://cdn3.bci.cl/uploads/e682d72b-13b1-49a3-93ce-20f6252e1d17/original/logo_bci_negro.svg",
+          "alt": "Logo principal de BCI",
+          "width": "120px",
+          "height": "auto"
+        }
+      },
+      "geometricShapes": {
+        "main": {
+          "path": "https://cdn3.bci.cl/uploads/a2389696-6bd0-495a-8b50-cdc47afe57a7/original/formas.svg",
+          "alt": "Formas geométricas de la marca BCI"
+        }
+      }
+    },
+    "colors": {
+      "palette": {
+        "blue": {
+          "50": "#E5F1FF", "100": "#C2DDFF", "200": "#8FC1FF", "300": "#5CA5FF", "400": "#2989FF",
+          "500": "#006EF5", "600": "#0057C2", "700": "#00408F", "800": "#00295C", "900": "#001229",
+          "primary": "#006EF5", "light": "#2989FF", "dark": "#0057C2"
+        },
+        "green": {
+          "50": "#EDFAEB", "100": "#DBF5D6", "200": "#B8EBAD", "300": "#94E085", "400": "#70D65C",
+          "500": "#4CCC33", "600": "#36AD1F", "700": "#248910", "800": "#185C0A", "900": "#0C2E05",
+          "primary": "#248910", "light": "#70D65C", "dark": "#185C0A"
+        },
+        "red": {
+          "50": "#FDE8E8", "100": "#FBD0D1", "200": "#F6A2A3", "300": "#F27375", "400": "#EE4447",
+          "500": "#E91619", "600": "#BB1114", "700": "#8C0D0F", "800": "#5D090A", "900": "#2F0405",
+          "primary": "#E91619"
+        },
+        "yellow": {
+          "50": "#FFFAE6", "100": "#FFF4CC", "200": "#FFE999", "300": "#FFDE66", "400": "#FFD333",
+          "500": "#FFC800", "600": "#CB9F00", "700": "#997800", "800": "#665000", "900": "#332800",
+          "primary": "#FFC800"
+        },
+        "gray": {
+          "50": "#F0F3F5", "100": "#E0E6EB", "200": "#C2CED6", "300": "#A3B5C2", "400": "#859CAD",
+          "500": "#587184", "600": "#3D4F5C", "700": "#2F3D46", "800": "#1F292E", "900": "#141B1F"
+        },
+        "white": { "main": "#ffffff" },
+        "black": { "main": "#000000" }
+      },
+      "semantic": {
+        "primary": {
+          "main": "{colors.palette.blue.primary}",
+          "light": "{colors.palette.blue.light}",
+          "dark": "{colors.palette.blue.dark}",
+          "contrastText": "{colors.palette.white.main}"
+        },
+        "secondary": {
+          "main": "{colors.palette.green.primary}",
+          "light": "{colors.palette.green.light}",
+          "dark": "{colors.palette.green.dark}",
+          "contrastText": "{colors.palette.white.main}"
+        },
+        "error": {
+          "main": "{colors.palette.red.primary}",
+          "contrastText": "{colors.palette.white.main}"
+        },
+        "warning": {
+          "main": "{colors.palette.yellow.primary}",
+          "contrastText": "{colors.palette.black.main}"
+        },
+        "success": {
+          "main": "{colors.palette.green.primary}",
+          "contrastText": "{colors.palette.white.main}"
+        },
+        "background": {
+          "default": "{colors.palette.white.main}",
+          "paper": "{colors.palette.gray.50}"
+        },
+        "text": {
+          "primary": "{colors.palette.black.main}",
+          "secondary": "{colors.palette.gray.600}",
+          "disabled": "{colors.palette.gray.400}"
+        }
+      }
+    },
+    "typography": {
+      "fontFamily": { "main": "Overpass", "monospace": "Overpass Mono" },
+      "fontSizes": {
+        "h1": "44px", "h2": "34px", "h3": "24px", "h4": "20px", "h5": "16px", "h6": "14px",
+        "body1": "16px", "body2": "14px", "overline": "12px",
+        "buttonPrimary": "16px", "buttonSecondary": "16px",
+        "label": "14px", "placeholder": "16px", "textField": "14px", "assistiveText": "12px"
+      },
+      "fontWeights": { "light": 300, "regular": 400, "medium": 500, "semibold": 600, "bold": 700 },
+      "lineHeights": {
+        "h1": "52px", "h2": "42px", "h3": "32px", "h4": "28px", "h5": "24px", "h6": "20px",
+        "body1": "24px", "body2": "20px", "overline": "16px",
+        "condensed": 1.2, "normal": 1.5, "relaxed": 1.8,
+        "buttonPrimary": "24px", "buttonSecondary": "24px",
+        "label": "20px", "placeholder": "24px", "textField": "20px", "assistiveText": "16px"
+      },
+      "textStyles": {
+        "headline1": { "fontSize": "{typography.fontSizes.h1}", "fontWeight": "{typography.fontWeights.semibold}", "lineHeight": "{typography.lineHeights.h1}", "color": "{colors.palette.gray.600}" },
+        "headline2": { "fontSize": "{typography.fontSizes.h2}", "fontWeight": "{typography.fontWeights.semibold}", "lineHeight": "{typography.lineHeights.h2}", "color": "{colors.palette.gray.600}" },
+        "headline3": { "fontSize": "{typography.fontSizes.h3}", "fontWeight": "{typography.fontWeights.bold}", "lineHeight": "{typography.lineHeights.h3}", "color": "{colors.palette.gray.600}" },
+        "subtitle1": { "fontSize": "{typography.fontSizes.h4}", "fontWeight": "{typography.fontWeights.semibold}", "lineHeight": "{typography.lineHeights.h4}", "color": "{colors.palette.gray.600}" },
+        "subtitle2": { "fontSize": "{typography.fontSizes.h5}", "fontWeight": "{typography.fontWeights.semibold}", "lineHeight": "{typography.lineHeights.h5}", "color": "{colors.palette.gray.600}" },
+        "subtitle3": { "fontSize": "{typography.fontSizes.h6}", "fontWeight": "{typography.fontWeights.semibold}", "lineHeight": "{typography.lineHeights.h6}", "color": "{colors.palette.gray.600}" },
+        "body1": { "fontSize": "{typography.fontSizes.body1}", "fontWeight": "{typography.fontWeights.bold}", "lineHeight": "{typography.lineHeights.body1}", "color": "{colors.palette.gray.500}" },
+        "body2": { "fontSize": "{typography.fontSizes.body2}", "fontWeight": "{typography.fontWeights.bold}", "lineHeight": "{typography.lineHeights.body2}", "color": "{colors.palette.gray.500}" },
+        "overline": { "fontSize": "{typography.fontSizes.overline}", "fontWeight": "{typography.fontWeights.bold}", "lineHeight": "{typography.lineHeights.overline}", "color": "{colors.palette.gray.500}" },
+        "headings": { "color": "{colors.palette.gray.600}" },
+        "paragraphs": { "color": "{colors.palette.gray.500}" }
+      }
+    },
+    "spacing": {
+      "baseUnit": "8px",
+      "units": { "xs": "0.5rem", "sm": "1rem", "md": "2rem", "lg": "4rem", "xl": "8rem" },
+      "textField": { "gap": "10px", "padding": "13px 10px 14px 15px", "labelLeft": "10px", "labelTop": "-10px" },
+      "buttonSecondary": { "padding": "6px 24px" }
+    },
+    "breakpoints": { "xs": "0px", "sm": "600px", "md": "960px", "lg": "1280px", "xl": "1920px" },
+    "borderRadius": {
+      "none": "0px", "sm": "4px", "md": "8px", "lg": "16px", "pill": "9999px",
+      "textField": "6px", "buttonSecondary": "24px"
+    },
+    "shadows": {
+      "sm": "0px 2px 4px rgba(0,0,0,0.1)",
+      "md": "0px 4px 8px rgba(0,0,0,0.12)",
+      "lg": "0px 8px 16px rgba(0,0,0,0.15)"
+    },
+    "iconography": {
+      "default": "24px",
+      "path": "/assets/icons/",
+      "icons": { "user": "user-icon.svg", "cart": "shopping-cart-icon.svg" }
+    },
+    "components": {
+      "button": {
+        "primary": {
+          "styles": {
+            "display": "inline-flex", "height": "48px", "padding": "12px 32px",
+            "justifyContent": "center", "alignItems": "center", "flexShrink": "0",
+            "borderRadius": "{borderRadius.pill}",
+            "backgroundColor": "{colors.palette.green.700}",
+            "color": "{colors.palette.white.main}",
+            "textAlign": "center", "fontFamily": "Overpass",
+            "fontSize": "{typography.fontSizes.buttonPrimary}",
+            "fontWeight": "{typography.fontWeights.semibold}",
+            "lineHeight": "{typography.lineHeights.buttonPrimary}"
+          },
+          "states": {
+            "hover": { "backgroundColor": "{colors.palette.green.600}" },
+            "pressed": { "backgroundColor": "{colors.palette.green.800}" },
+            "disabled": { "opacity": 0.5 }
+          }
+        },
+        "secondary": {
+          "styles": {
+            "display": "inline-flex", "height": "36px",
+            "padding": "{spacing.buttonSecondary.padding}",
+            "justifyContent": "center", "alignItems": "center",
+            "borderRadius": "{borderRadius.buttonSecondary}",
+            "border": "2px solid {colors.palette.green.700}",
+            "background": "{colors.palette.white.main}",
+            "color": "{colors.palette.green.700}",
+            "textAlign": "center", "fontFamily": "Overpass",
+            "fontSize": "{typography.fontSizes.buttonSecondary}",
+            "fontWeight": "{typography.fontWeights.semibold}",
+            "lineHeight": "{typography.lineHeights.buttonSecondary}"
+          },
+          "states": {
+            "over": {
+              "borderColor": "{colors.palette.green.800}",
+              "background": "{colors.palette.green.100}",
+              "color": "{colors.palette.green.800}"
+            },
+            "disabled": { "opacity": 0.5 }
+          }
+        }
+      },
+      "card": {
+        "defaultProps": { "elevation": "md" },
+        "styles": {
+          "backgroundColor": "{colors.semantic.background.paper}",
+          "borderRadius": "{borderRadius.md}"
+        }
+      },
+      "textField": {
+        "styles": {
+          "display": "flex", "height": "52px",
+          "padding": "{spacing.textField.padding}",
+          "alignItems": "center", "gap": "{spacing.textField.gap}", "alignSelf": "stretch",
+          "borderRadius": "{borderRadius.textField}",
+          "border": "1px solid {colors.palette.gray.400}",
+          "background": "{colors.palette.white.main}",
+          "color": "{colors.palette.gray.500}",
+          "fontFamily": "Overpass",
+          "fontSize": "{typography.fontSizes.textField}",
+          "fontWeight": "{typography.fontWeights.regular}",
+          "lineHeight": "{typography.lineHeights.textField}"
+        },
+        "label": {
+          "display": "flex", "flexDirection": "column", "justifyContent": "center", "alignItems": "flex-start",
+          "position": "absolute",
+          "left": "{spacing.textField.labelLeft}", "top": "{spacing.textField.labelTop}",
+          "color": "{colors.palette.gray.500}", "fontFamily": "Overpass",
+          "fontSize": "{typography.fontSizes.label}",
+          "fontWeight": "{typography.fontWeights.regular}",
+          "lineHeight": "{typography.lineHeights.label}"
+        },
+        "placeholder": {
+          "display": "flex", "height": "24px", "flexDirection": "column", "justifyContent": "center",
+          "flex": "1 0 0",
+          "color": "{colors.palette.gray.500}", "fontFamily": "Overpass",
+          "fontSize": "{typography.fontSizes.placeholder}",
+          "fontWeight": "{typography.fontWeights.regular}",
+          "lineHeight": "{typography.lineHeights.placeholder}"
+        },
+        "assistiveText": {
+          "display": "flex", "width": "290px", "height": "15px", "alignItems": "flex-start", "gap": "8px",
+          "flexDirection": "column", "justifyContent": "center", "flex": "1 0 0",
+          "color": "{colors.palette.gray.400}", "fontFamily": "Overpass",
+          "fontSize": "{typography.fontSizes.assistiveText}",
+          "fontWeight": "{typography.fontWeights.regular}",
+          "lineHeight": "{typography.lineHeights.assistiveText}"
+        },
+        "states": {
+          "focused": {
+            "border": "1px solid {colors.palette.gray.600}",
+            "boxShadow": "0 0 0 2px rgba(0, 111, 185, 0.2)"
+          },
+          "error": {
+            "border": "1px solid {colors.palette.red.primary}",
+            "boxShadow": "0 0 0 2px rgba(233, 22, 25, 0.2)"
+          }
+        }
+      }
+    }
+  }
+}
