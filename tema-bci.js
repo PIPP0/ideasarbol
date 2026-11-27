@@ -294,6 +294,12 @@
     'background-image:url("data:image/svg+xml;utf8,' + encodeURIComponent(chev) + '") !important;background-repeat:no-repeat !important;background-position:right 10px center !important;background-size:14px !important;padding-right:32px !important');
   add(H + 'select option', 'color:' + g[900] + ';background:#fff');
 
+  // ---------- Deslizador de zoom ----------
+  add(H + '.zoom-slider::-webkit-slider-runnable-track', 'background:' + (LIGHT ? g[200] : bl[700]));
+  add(H + '.zoom-slider::-moz-range-track', 'background:' + (LIGHT ? g[200] : bl[700]));
+  add(H + '.zoom-slider::-webkit-slider-thumb', 'background:' + gr[700] + ';border-color:' + (LIGHT ? '#fff' : bl[900]));
+  add(H + '.zoom-slider::-moz-range-thumb', 'background:' + gr[700] + ';border-color:' + (LIGHT ? '#fff' : bl[900]));
+
   // ---------- Editor de categorías (Ajustes > Categorías) ----------
   add(H + '.cat-card', '--cat-bg:' + (LIGHT ? '#fff' : bl[900]));
   add(H + '.cat-label, ' + H + '.cat-count', 'color:' + (LIGHT ? g[600] : bl[200]));

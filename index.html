@@ -33,7 +33,7 @@
   </script>
 
   <!-- Tema Bci: aplica el diseño definido en design_system_bci.json -->
-  <script src="tema-bci.js?v=20261126d"></script>
+  <script src="tema-bci.js?v=20261126e"></script>
 
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -261,6 +261,15 @@
     .flying-bird-4 { animation: birdFlightPath1 17s infinite linear 10.5s; }
     .flying-bird-5 { animation: birdFlightPath2 22s infinite linear 14s; }
 
+    /* Deslizador de zoom */
+    .zoom-slider { -webkit-appearance:none; appearance:none; width:112px; height:28px; background:transparent; cursor:pointer; margin:0 4px; }
+    .zoom-slider::-webkit-slider-runnable-track { height:4px; border-radius:9999px; background:rgba(148,163,184,.45); }
+    .zoom-slider::-moz-range-track { height:4px; border-radius:9999px; background:rgba(148,163,184,.45); }
+    .zoom-slider::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:16px; height:16px; margin-top:-6px; border-radius:9999px; background:#10b981; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35); transition:transform .12s; }
+    .zoom-slider::-moz-range-thumb { width:12px; height:12px; border-radius:9999px; background:#10b981; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,.35); }
+    .zoom-slider:hover::-webkit-slider-thumb { transform:scale(1.15); }
+    .zoom-slider:focus-visible { outline:2px solid #10b981; outline-offset:2px; border-radius:9999px; }
+
     /* Editor de categorías */
     .cat-card { --cat-bg: #0f172a; }
     .cat-label { display:block; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:6px; color:#94a3b8; }
@@ -436,14 +445,15 @@
 
       <!-- Controles de Zoom y Pan -->
       <div id="zoomControlsPanel" class="absolute bottom-6 right-6 glass-panel rounded-xl p-1.5 flex items-center gap-1 z-30 border border-slate-800">
-        <button id="zoomOutBtn" type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center transition" title="Reducir zoom">
+        <button id="zoomOutBtn" type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center transition" title="Alejar (tecla −)" aria-label="Alejar">
           <i class="fa-solid fa-minus text-xs"></i>
         </button>
-        <span id="zoomLevelText" class="text-xs font-mono text-slate-400 px-2 min-w-[45px] text-center">100%</span>
-        <button id="zoomInBtn" type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center transition" title="Aumentar zoom">
+        <input id="zoomSlider" type="range" min="0" max="100" step="0.5" value="50" class="zoom-slider" aria-label="Nivel de zoom" title="Arrastra para acercar o alejar">
+        <button id="zoomInBtn" type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center transition" title="Acercar (tecla +)" aria-label="Acercar">
           <i class="fa-solid fa-plus text-xs"></i>
         </button>
-        <button id="zoomResetBtn" type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center transition ml-1" title="Centrar Árbol">
+        <span id="zoomLevelText" class="text-xs font-mono text-slate-400 px-1.5 min-w-[44px] text-center" aria-live="off">100%</span>
+        <button id="zoomResetBtn" type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center transition" title="Ver todo el árbol (tecla 0)" aria-label="Ver todo el árbol">
           <i class="fa-solid fa-compress text-xs"></i>
         </button>
       </div>
@@ -3956,22 +3966,46 @@
       const treeViewport = document.getElementById('treeViewport');
       let userTookControlOfZoom = false;
 
+      const ZOOM_MIN = 0.15, ZOOM_MAX = 2.5;
+      const zoomSlider = document.getElementById('zoomSlider');
+      const clampZoom = (z) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+      // El deslizador usa escala logarítmica: cada tramo se siente igual de "largo" a cualquier nivel
+      const zoomToSlider = (z) => 100 * Math.log(z / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN);
+      const sliderToZoom = (v) => ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, v / 100);
+
       function updateTransform(disableTransition = false) {
         if (disableTransition) {
           treeViewport.style.transition = 'none';
         } else {
-          treeViewport.style.transition = 'transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)';
+          treeViewport.style.transition = 'transform 0.2s cubic-bezier(0.22, 1, 0.36, 1)';
         }
         treeViewport.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
         if (zoomText) {
           zoomText.innerText = `${Math.round(zoomLevel * 100)}%`;
         }
+        if (zoomSlider) {
+          zoomSlider.value = zoomToSlider(zoomLevel);
+          zoomSlider.setAttribute('aria-valuetext', `${Math.round(zoomLevel * 100)}%`);
+        }
       }
 
-      function setZoom(newZoom) {
-        zoomLevel = Math.max(0.15, Math.min(2.5, newZoom));
-        updateTransform(false);
+      // Zoom que mantiene fijo el punto (ex, ey), medido desde el centro del lienzo.
+      // Con (0, 0) acerca/aleja hacia el centro de lo que se ve; con la posición del cursor,
+      // el punto bajo el cursor no se mueve.
+      function zoomAt(newZoom, ex, ey, animate) {
+        const z = clampZoom(newZoom);
+        if (z === zoomLevel) return;
+        const s = z / zoomLevel;
+        panX = ex - (ex - panX) * s;
+        panY = ey - (ey - panY) * s;
+        zoomLevel = z;
+        updateTransform(!animate);
       }
+      function zoomFromCenter(factor) {
+        userTookControlOfZoom = true;
+        zoomAt(zoomLevel * factor, 0, 0, true);
+      }
+      function setZoom(newZoom) { zoomAt(newZoom, 0, 0, true); }
 
       // Límites reales del contenido: el lienzo base (1400x900) más todas las tarjetas,
       // incluso las que sobresalen del lienzo. Así el árbol se ve completo de entrada.
@@ -4024,21 +4058,31 @@
         if (!userTookControlOfZoom && Date.now() < autoFitUntil) fitTreeToContainer();
       };
 
+      // Pasos proporcionales (+25 % / −20 %): se sienten parejos y son fáciles de revertir
       if (zoomInBtn) {
-        zoomInBtn.onclick = (e) => {
-          e.stopPropagation();
-          userTookControlOfZoom = true;
-          setZoom(zoomLevel + 0.08);
-        };
+        zoomInBtn.onclick = (e) => { e.stopPropagation(); zoomFromCenter(1.25); };
       }
-
       if (zoomOutBtn) {
-        zoomOutBtn.onclick = (e) => {
+        zoomOutBtn.onclick = (e) => { e.stopPropagation(); zoomFromCenter(1 / 1.25); };
+      }
+      if (zoomSlider) {
+        zoomSlider.addEventListener('input', (e) => {
           e.stopPropagation();
           userTookControlOfZoom = true;
-          setZoom(zoomLevel - 0.08);
-        };
+          zoomAt(sliderToZoom(parseFloat(zoomSlider.value)), 0, 0, false);
+        });
+        zoomSlider.addEventListener('mousedown', (e) => e.stopPropagation());
       }
+      // Atajos de teclado: + acerca, − aleja, 0 ajusta todo el árbol
+      document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const t = e.target;
+        if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+        if (['ideaModal', 'configModal', 'confirmDeleteModal'].some(id => { const m = document.getElementById(id); return m && !m.classList.contains('hidden'); })) return;
+        if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomFromCenter(1.25); }
+        else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomFromCenter(1 / 1.25); }
+        else if (e.key === '0') { e.preventDefault(); userTookControlOfZoom = true; fitTreeToContainer(); }
+      });
 
       if (zoomResetBtn) {
         zoomResetBtn.onclick = (e) => {
@@ -4048,26 +4092,39 @@
         };
       }
 
-      // Zoom con scroll/trackpad centrado en el cursor: el punto bajo el mouse
-      // se mantiene fijo en pantalla, en vez de saltar hacia el centro del árbol.
+      // Zoom con rueda / trackpad centrado en el cursor (el punto bajo el cursor no se mueve).
+      //  - Rueda de mouse (saltos de ~100): un paso fijo y suave de 15 % por "clic".
+      //  - Trackpad / pellizco (valores pequeños y continuos): proporcional a lo que se mueve el dedo,
+      //    acumulado por fotograma y con tope, para que no se dispare con la inercia.
+      let wheelAcc = 0;
+      let wheelRaf = null;
+      let wheelPoint = { ex: 0, ey: 0 };
       canvasContainer.addEventListener('wheel', (e) => {
+        if (e.target.closest && e.target.closest('#zoomControlsPanel')) return;
         e.preventDefault();
         userTookControlOfZoom = true;
-        const zoomFactor = e.deltaY < 0 ? 1.035 : 0.965;
-        const newZoom = Math.max(0.15, Math.min(2.5, zoomLevel * zoomFactor));
-        if (newZoom === zoomLevel) return;
 
-        const rect = treeViewport.getBoundingClientRect();
-        const ratioX = (e.clientX - rect.left) / rect.width;
-        const ratioY = (e.clientY - rect.top) / rect.height;
-        const scaleChange = newZoom / zoomLevel;
-        const dw = rect.width * (scaleChange - 1);
-        const dh = rect.height * (scaleChange - 1);
+        let dy = e.deltaY;
+        if (e.deltaMode === 1) dy *= 16; else if (e.deltaMode === 2) dy *= 100;
+        const cr = canvasContainer.getBoundingClientRect();
+        const ex = e.clientX - (cr.left + cr.width / 2);
+        const ey = e.clientY - (cr.top + cr.height / 2);
 
-        panX += dw * (0.5 - ratioX);
-        panY += dh * (0.5 - ratioY);
-        zoomLevel = newZoom;
-        updateTransform(true);
+        const isNotch = !e.ctrlKey && Math.abs(dy) >= 50 && Number.isInteger(e.deltaY);
+        if (isNotch) {
+          zoomAt(zoomLevel * (dy < 0 ? 1.15 : 1 / 1.15), ex, ey, true);
+          return;
+        }
+        wheelAcc += -dy * (e.ctrlKey ? 0.010 : 0.0035);
+        wheelPoint = { ex, ey };
+        if (!wheelRaf) {
+          wheelRaf = requestAnimationFrame(() => {
+            wheelRaf = null;
+            const step = Math.max(-0.06, Math.min(0.06, wheelAcc)); // tope por fotograma
+            wheelAcc = 0;
+            if (step) zoomAt(zoomLevel * Math.exp(step), wheelPoint.ex, wheelPoint.ey, false);
+          });
+        }
       }, { passive: false });
 
       let isPanning = false;
@@ -4126,7 +4183,7 @@
             e.touches[0].clientY - e.touches[1].clientY
           );
           const factor = currentDist / touchStartDist;
-          zoomLevel = Math.max(0.15, Math.min(2.5, zoomLevel * factor));
+          zoomLevel = clampZoom(zoomLevel * factor);
           updateTransform(true);
           touchStartDist = currentDist;
         }
