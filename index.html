@@ -4270,15 +4270,18 @@
         if (onUi) { tapStart = null; return; }
         const card = e.target.closest && e.target.closest('#treeCardsContainer .glass-card, #treeCardsContainer .glass-card-light');
         const interactive = e.target.closest && e.target.closest('button, a, input, textarea, select, label');
-        tapStart = { x: e.clientX, y: e.clientY, card: (card && !interactive) ? card : null, bg: !card };
+        tapStart = { x: e.clientX, y: e.clientY, t: Date.now(), card: (card && !interactive) ? card : null, bg: !card };
       }, true);
       canvasContainer.addEventListener('pointerup', (e) => {
         const t = tapStart; tapStart = null;
         if (!t) return;
         const moved = Math.hypot(e.clientX - t.x, e.clientY - t.y);
+        // Con trackpad o mano el puntero casi siempre se mueve un poco al hacer clic: eso sigue siendo un clic.
+        // Un toque rápido tolera algo más de movimiento; un arrastre de verdad (lento o largo) es mover el lienzo.
+        const esToque = moved < 10 || (Date.now() - t.t < 300 && moved < 20);
         if (t.card && moved < 6) { focusCard(t.card); }
         else if (t.bg && focusedCardId) {
-          if (moved < 6) exitFocus(); else clearFocusVisual(); // arrastró el lienzo: conserva la vista
+          if (esToque) exitFocus(); else clearFocusVisual(); // arrastró el lienzo: conserva la vista
         }
       }, true);
       canvasContainer.addEventListener('pointercancel', () => { tapStart = null; }, true);
