@@ -326,8 +326,8 @@
   }
   // Aves: silueta de perfil con alas que aletean desde el hombro
   // Mismo aleteo que las aves originales: 0,28 s, de reposo a 50° y de vuelta
-  add(S + '.ds-wing', 'transform-origin:3px -2px;animation:dsFlap .28s infinite ease-in-out');
-  add(S + '.ds-wing-far', 'transform-origin:3px -2px;animation:dsFlap .28s infinite ease-in-out;animation-delay:-.06s');
+  add(H + '#animatedBirdsLayer .ds-wing', 'transform-origin:3px -2px;animation:dsFlap .28s infinite ease-in-out');
+  add(H + '#animatedBirdsLayer .ds-wing-far', 'transform-origin:3px -2px;animation:dsFlap .28s infinite ease-in-out;animation-delay:-.06s');
   css.push('@keyframes dsFlap{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-50deg)}}');
   // Tronco
   add(S + 'path[fill="url(#trunkGrad)"]', 'fill:' + tronco + ';stroke:' + tronco);

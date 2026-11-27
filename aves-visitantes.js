@@ -42,6 +42,11 @@
     svg.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:25';
     vp.appendChild(svg);
 
+    // Las aves de fondo se pasan a este plano (por delante de las tarjetas): así ningún ave
+    // desaparece al cruzar detrás de una tarjeta. Sus rutas y animaciones no cambian.
+    var bg = document.getElementById('animatedBirdsLayer');
+    if (bg) svg.insertBefore(bg, svg.firstChild);
+
     var occupied = {}; // tarjetas con un ave encima
 
     // ---------- Dibujo del ave (de perfil, mira a +X) ----------
@@ -236,7 +241,7 @@
       var P0 = { x: fromLeft ? -90 : 1490, y: clamp(F.y - rand(140, 300), -20, 520) };
       var P1 = { x: P0.x + (F.x - P0.x) * 0.45, y: Math.min(P0.y, F.y) - rand(30, 90) };
       var P2 = { x: F.x - dir * rand(70, 110), y: F.y - rand(38, 58) };
-      var dur = clamp(makePath([P0, P1, P2, F]).length / 190, 3800, 7500);
+      var dur = clamp(makePath([P0, P1, P2, F]).length / 110, 7000, 18000); // ≈110 unidades/s, como las aves de fondo
 
       v.legs.style.opacity = '0';
       v.inner.style.transform = '';
@@ -309,10 +314,11 @@
             var P1 = { x: F.x + ex * 30, y: F.y - 48 };
             var P2 = { x: F.x + ex * 150, y: F.y - 125 };
             var P3 = { x: ex > 0 ? 1580 : -180, y: Math.max(-40, F.y - rand(180, 300)) };
-            var dur = clamp(makePath([F, P1, P2, P3]).length / 250, 3200, 6500);
+            var dur = clamp(makePath([F, P1, P2, P3]).length / 105, 6500, 16000);
+            if (v.spooked) dur *= 0.65; // si la espantaron, sale más decidida pero sin disparar
             v.inner.style.transform = '';
             setTimeout(function () { flap(v, 280); }, 900);
-            return fly(v, [F, P1, P2, P3], dur, { warp: function (t) { return t * t * (0.5 + 0.5 * t); }, fadeOut: true, dir: ex });
+            return fly(v, [F, P1, P2, P3], dur, { warp: function (t) { return t * (0.75 + 0.25 * t); }, fadeOut: true, dir: ex });
           });
       }).then(function () { stopWings(v); });
     }
@@ -324,7 +330,9 @@
     // ---------- Programación: visitas esporádicas ----------
     var colors = [B.colors[1], B.colors[3]]; // dos aves de colores distintos
     var visitors = colors.map(function (c) { return makeBird(c); });
-    visitors.forEach(function (v, i) {
+    // ?aves=manual desactiva las visitas automáticas (sirve para pruebas con window.dsAvesVisitar)
+    var manual = /[?&]aves=manual/.test(location.search);
+    if (!manual) visitors.forEach(function (v, i) {
       (function loop(first) {
         var wait = first ? (i === 0 ? rand(6000, 11000) : rand(16000, 26000)) : rand(16000, 34000);
         setTimeout(function () {
