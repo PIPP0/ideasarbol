@@ -34,7 +34,7 @@
 
   <!-- Tema Bci: aplica el diseño definido en design_system_bci.json -->
   <script src="tema-bci.js?v=20261126k"></script>
-  <script src="aves-visitantes.js?v=6" defer></script>
+  <script src="aves-visitantes.js?v=7" defer></script>
 
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -402,8 +402,8 @@
         <span class="hidden sm:inline">Ajustes</span>
       </button>
 
-      <button id="resetDemoBtn" type="button" title="Restablecer datos de prueba" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 border border-slate-700 transition">
-        <i class="fa-solid fa-rotate-right"></i>
+      <button id="resetDemoBtn" type="button" title="Datos de prueba: reemplaza TODO el contenido por los datos de demostración (pide confirmación)" aria-label="Restablecer datos de prueba" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 border border-slate-700 transition">
+        <i class="fa-solid fa-flask"></i>
       </button>
 
       <button id="exportCsvBtn" type="button" title="Exportar ideas a CSV para comité de decisión" class="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 border border-slate-700 transition">
@@ -467,7 +467,7 @@
           <i class="fa-solid fa-plus text-xs"></i>
         </button>
         <span id="zoomLevelText" class="text-xs font-mono text-slate-400 px-1.5 min-w-[44px] text-center" aria-live="off">100%</span>
-        <button id="zoomResetBtn" type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center transition" title="Ver todo el árbol (tecla 0)" aria-label="Ver todo el árbol">
+        <button id="zoomResetBtn" type="button" class="w-8 h-8 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center transition" title="Volver al 100 % (ver todo el árbol, tecla 0)" aria-label="Volver al 100 %, ver todo el árbol">
           <i class="fa-solid fa-compress text-xs"></i>
         </button>
       </div>
@@ -1915,37 +1915,38 @@
       return db.collection('arbolIdeas').doc('sharedState');
     }
 
-    function saveStateToFirestore() {
+    // ---- Salvaguardas para no perder trabajo ----
+    //  1) No se escribe en la nube hasta conocer su estado actual: un cliente recién abierto con datos
+    //     locales viejos ya no puede pisar lo que otras personas guardaron.
+    //  2) Antes de cualquier baja grande de ideas o árboles (restablecer datos, borrar un árbol, etc.)
+    //     se guarda automáticamente un respaldo del estado anterior en un documento aparte.
+    let cloudSynced = false;      // ya llegó el primer estado desde la nube
+    let lastCloudTrees = null;    // copia del último estado conocido de la nube
+    const countIdeas = (ts) => (ts || []).reduce((n, t) => n + ((t.ideas || []).length), 0);
+
+    function backupCloudState(treesToSave, tag) {
+      if (!firestoreReady || !Array.isArray(treesToSave) || !treesToSave.length) return Promise.resolve();
+      const id = 'respaldo-auto-' + new Date().toISOString().replace(/[:.]/g, '-') + (tag ? '-' + tag : '');
+      return db.collection('arbolIdeas').doc(id).set({
+        trees: JSON.parse(JSON.stringify(treesToSave)),
+        guardadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+        nota: 'Respaldo automático antes de una baja de ideas o árboles (' + (tag || 'sin etiqueta') + ').'
+      }).catch(err => console.error('No se pudo guardar el respaldo automático:', err));
+    }
+
+    function saveStateToFirestore(force) {
       if (!firestoreReady) return;
+      if (!cloudSynced && force !== true) return; // aún no se conoce el estado de la nube
+      if (lastCloudTrees && (countIdeas(trees) < countIdeas(lastCloudTrees) - 1 || trees.length < lastCloudTrees.length)) {
+        backupCloudState(lastCloudTrees, 'baja-de-ideas');
+      }
       getSharedStateDocRef().set({
         trees,
         appConfig,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        lastCloudTrees = JSON.parse(JSON.stringify(trees));
       }).catch(err => console.error('Error guardando en Firestore (se sigue usando el almacenamiento local):', err));
-    }
-
-    // Deja cada árbol con categorías/ideas/stackIndex consistentes, sin resucitar
-    // árboles demo que el usuario haya eliminado a propósito (por eso NO se mezcla
-    // aquí con DEMO_TREES; ese paso solo corre una vez, en el arranque local).
-    function normalizeAllTrees() {
-      trees.forEach(tree => {
-        if (!tree.categories) {
-          tree.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
-        } else {
-          Object.keys(DEFAULT_CATEGORIES).forEach(k => {
-            if (!tree.categories[k]) {
-              tree.categories[k] = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES[k]));
-            } else if (!tree.categories[k].desc) {
-              tree.categories[k].desc = DEFAULT_CATEGORIES[k].desc;
-            }
-          });
-        }
-        if (!Array.isArray(tree.ideas)) {
-          tree.ideas = [];
-        }
-        tree.ideas.forEach(normalizeIdeaFields);
-        assignStackIndexes(tree.ideas);
-      });
     }
 
     // Escucha en vivo los cambios en Firestore: si alguien más (u otro dispositivo/
@@ -1957,7 +1958,9 @@
         if (docSnap.metadata && docSnap.metadata.hasPendingWrites) return;
         if (docSnap.exists) {
           const data = docSnap.data();
+          cloudSynced = true;
           if (Array.isArray(data.trees) && data.trees.length > 0) {
+            lastCloudTrees = JSON.parse(JSON.stringify(data.trees));
             trees = data.trees;
             normalizeAllTrees();
             if (!trees.some(t => t.id === currentTreeId)) {
@@ -1980,7 +1983,8 @@
         } else {
           // Primera vez que se usa Firestore: todavía no existe el documento
           // compartido, así que lo sembramos con lo que haya cargado localmente.
-          saveStateToFirestore();
+          cloudSynced = true;
+          saveStateToFirestore(true);
         }
       }, err => {
         console.error('Error escuchando cambios de Firestore (se sigue usando el almacenamiento local):', err);
@@ -3987,15 +3991,14 @@
       let focusedCardId = null;   // tarjeta acercada con un toque
       let savedView = null;       // vista anterior, para volver con Esc
 
-      // El zoom mínimo es el MÁS CHICO que deja ver el árbol completo, con estas reglas:
-      //  - nunca por encima del ajuste a la pantalla (en el mínimo el árbol siempre se ve completo);
-      //  - no baja del 50 % mientras la pantalla lo permita, ni de la mitad del ajuste.
-      // En ventanas pequeñas, donde el ajuste ya es menor a 50 %, el mínimo pasa a ser el propio ajuste:
-      // se ve completo y se adapta a la pantalla.
+      // El porcentaje que se muestra es relativo a la pantalla: 100 % = árbol completo ajustado a la
+      // pantalla (el estado inicial). El mínimo es 50 % de ese tamaño, así que el árbol siempre se ve
+      // completo y nunca queda diminuto, en cualquier tamaño de ventana.
       const ZOOM_MAX = 2.5;
       const ZOOM_FLOOR = 0.5;
       const MIN_VS_FIT = 0.5;
-      let zoomMin = 0.5;
+      let zoomMin = 0.3;
+      let fitRef = null; // zoom que deja el árbol completo ajustado a la pantalla (= 100 % en pantalla)
       const zoomSlider = document.getElementById('zoomSlider');
       const clampZoom = (z) => Math.max(zoomMin, Math.min(ZOOM_MAX, z));
       // El deslizador usa escala logarítmica: cada tramo se siente igual de "largo" a cualquier nivel
@@ -4038,7 +4041,7 @@
         }
         treeViewport.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
         if (zoomText) {
-          zoomText.innerText = `${Math.round(zoomLevel * 100)}%`;
+          zoomText.innerText = `${Math.round((zoomLevel / (fitRef || zoomLevel)) * 100)}%`;
         }
         if (zoomSlider) {
           zoomSlider.value = zoomToSlider(zoomLevel);
@@ -4093,7 +4096,8 @@
       function refreshZoomMin() {
         const f = computeFit();
         boundsCache = f.b;
-        zoomMin = Math.min(f.z, Math.max(ZOOM_FLOOR, f.z * MIN_VS_FIT));
+        fitRef = f.z;
+        zoomMin = Math.max(0.05, f.z * MIN_VS_FIT); // 50 % del tamaño ajustado
         return f;
       }
       // Tras cambios de tamaño o de tarjetas: recalcula límites, respeta el mínimo y devuelve el árbol al marco
@@ -4445,18 +4449,21 @@
       document.getElementById('shareTreeUrlBtn').addEventListener('click', copyTreeUrlToClipboard);
 
       document.getElementById('resetDemoBtn').addEventListener('click', () => {
-        trees = JSON.parse(JSON.stringify(DEMO_TREES));
-        currentTreeId = 'tree-bci-main';
-        userVotes = {};
-        appConfig = { bgType: 'theme', bgValue: '#020617' };
+        showConfirmModal('Esto reemplaza TODOS los árboles, ideas, comentarios, posiciones y categorías por los datos de demostración, para todas las personas que usan este sitio. Se guarda un respaldo automático en la nube, pero no es una acción para usar con datos reales. ¿Seguro que quieres reemplazar todo?', () => {
+          backupCloudState(lastCloudTrees || trees, 'antes-de-restablecer-datos-de-prueba');
+          trees = JSON.parse(JSON.stringify(DEMO_TREES));
+          currentTreeId = 'tree-bci-main';
+          userVotes = {};
+          appConfig = { bgType: 'theme', bgValue: '#020617' };
 
-        saveState();
-        applyAppBackground();
-        applyCanvasTheme();
-        updateTreePickerUI();
-        renderSidebarCategories();
-        renderTreeCards();
-        showToast('Espacio restablecido a datos iniciales');
+          saveState();
+          applyAppBackground();
+          applyCanvasTheme();
+          updateTreePickerUI();
+          renderSidebarCategories();
+          renderTreeCards();
+          showToast('Espacio restablecido a datos iniciales (respaldo guardado)');
+        }, { title: 'Restablecer datos de prueba', confirmLabel: 'Sí, reemplazar todo', icon: 'fa-triangle-exclamation' });
       });
 
       document.getElementById('toggleLeaderboardBtn').addEventListener('click', () => {
