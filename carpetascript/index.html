@@ -97,29 +97,38 @@
     }).catch(function () {});
   }
 
+  // Los textos se descargan al abrir la página: así, al pulsar «Copiar» se copia al instante, dentro del clic
+  // (algunos navegadores, como Safari, no permiten copiar después de esperar una descarga).
+  var TEXTOS = {};
+  ARCHIVOS.forEach(function (a) {
+    fetch('archivos/' + a.archivo + '.txt').then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (t) { TEXTOS[a.archivo] = t; }).catch(function () {});
+  });
+
   function copiarTexto(t) {
+    // 1) método clásico, síncrono (funciona dentro del clic en todos los navegadores)
+    var ta = document.createElement('textarea');
+    ta.value = t; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.top = '0'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    if (ok) return Promise.resolve();
+    // 2) API moderna
     if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
-    return new Promise(function (res, rej) {
-      var ta = document.createElement('textarea');
-      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy') ? res() : rej(new Error('copy')); } catch (e) { rej(e); }
-      document.body.removeChild(ta);
-    });
+    return Promise.reject(new Error('copy'));
   }
 
   function copiar(a, btn) {
-    btn.textContent = 'Copiando…';
-    fetch('archivos/' + a.archivo + '.txt').then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
-      .then(copiarTexto)
-      .then(function () {
-        btn.textContent = '✓ Copiado'; btn.className = 'copiar ok';
-        setTimeout(function () { btn.textContent = 'Copiar'; btn.className = 'copiar'; }, 2500);
-      })
-      .catch(function () {
-        btn.textContent = 'No se pudo: usa Descargar'; btn.className = 'copiar error';
-        setTimeout(function () { btn.textContent = 'Copiar'; btn.className = 'copiar'; }, 3500);
-      });
+    var t = TEXTOS[a.archivo];
+    if (t === undefined) { btn.textContent = 'Cargando… intenta de nuevo'; setTimeout(function () { btn.textContent = 'Copiar'; }, 1800); return; }
+    copiarTexto(t).then(function () {
+      btn.textContent = '✓ Copiado (' + Math.max(1, Math.round(t.length / 1024)) + ' KB)'; btn.className = 'copiar ok';
+      setTimeout(function () { btn.textContent = 'Copiar'; btn.className = 'copiar'; }, 2500);
+    }).catch(function () {
+      btn.textContent = 'No se pudo: usa Descargar'; btn.className = 'copiar error';
+      setTimeout(function () { btn.textContent = 'Copiar'; btn.className = 'copiar'; }, 3500);
+    });
   }
 
   ARCHIVOS.forEach(fila);
