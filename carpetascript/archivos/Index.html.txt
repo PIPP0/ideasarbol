@@ -5,7 +5,7 @@
 <script>
 /* Diagnóstico: si algo falla, aparece un aviso rojo con el detalle (se puede copiar y enviar). */
 (function () {
-  window.__PORT = '2026-11-27-v5';
+  window.__PORT = '2026-11-27-v6';
   var errs = [], banner = null;
   // Si el navegador bloquea localStorage dentro de Apps Script, se usa una memoria temporal (sin errores)
   try { var t = window.localStorage; t.setItem('__t', '1'); t.removeItem('__t'); }
