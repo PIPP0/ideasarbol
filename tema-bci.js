@@ -288,6 +288,26 @@
   var fs = C.textField.states;
   if (fs.focused) add(states(fieldSel, ':focus') + ',' + H + '.focus\\:border-emerald-500:focus', decl(fs.focused) + ';outline:none');
 
+  // ---------- Listas desplegables: flecha propia en vez de la nativa del sistema ----------
+  var chev = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="' + g[600] + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3.5,6 8,10.5 12.5,6"/></svg>';
+  add(H + 'select', 'appearance:none;-webkit-appearance:none;-moz-appearance:none;cursor:pointer;' +
+    'background-image:url("data:image/svg+xml;utf8,' + encodeURIComponent(chev) + '") !important;background-repeat:no-repeat !important;background-position:right 10px center !important;background-size:14px !important;padding-right:32px !important');
+  add(H + 'select option', 'color:' + g[900] + ';background:#fff');
+
+  // ---------- Editor de categorías (Ajustes > Categorías) ----------
+  add(H + '.cat-card', '--cat-bg:' + (LIGHT ? '#fff' : bl[900]));
+  add(H + '.cat-label, ' + H + '.cat-count', 'color:' + (LIGHT ? g[600] : bl[200]));
+  add(H + '.cat-count.is-long', 'color:' + (LIGHT ? yl[700] : yl[400]));
+  add(H + '.cat-chev', 'background:' + (LIGHT ? g[100] : bl[700]) + ';color:' + (LIGHT ? g[700] : bl[50]));
+  add(H + '.cat-link', 'color:' + (LIGHT ? gr[700] : gr[300]));
+  add(H + '.cat-icon-grid', 'background:' + (LIGHT ? g[50] : bl[800]) + ';border:1px solid ' + (LIGHT ? g[100] : bl[700]));
+  add(H + '.cat-icon-opt', 'color:' + (LIGHT ? g[700] : bl[100]));
+  add(H + '.cat-icon-opt:hover', 'background:' + (LIGHT ? g[100] : bl[700]));
+  add(H + '.cat-icon-opt.is-selected', 'background:var(--sw);color:var(--sw-ink,#fff)');
+  add(H + 'input.cat-title-input', 'color:' + g[900] + ' !important;font-size:15px');
+  add(H + 'textarea.cat-desc-input', 'color:' + g[700] + ' !important;line-height:1.45');
+  add(H + '.cat-card .cat-del', 'border-radius:' + R.pill);
+
   // =====================================================================
   //  Dibujo del árbol (SVG)
   // =====================================================================
